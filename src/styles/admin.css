@@ -1,0 +1,339 @@
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.admin-toolbar .field {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 10rem;
+}
+
+.admin-toolbar label {
+  font-size: 0.8rem;
+  color: var(--hc-text-muted);
+}
+
+.admin-toolbar input,
+.admin-toolbar select {
+  border: 1px solid var(--hc-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  background: #fff;
+}
+
+.admin-panel {
+  background: var(--hc-surface);
+  border: 1px solid var(--hc-border);
+  border-radius: var(--hc-radius);
+  box-shadow: var(--hc-shadow-sm);
+  padding: 1rem;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 0.75rem 0.65rem;
+  border-bottom: 1px solid var(--hc-border);
+  vertical-align: top;
+}
+
+.admin-table th {
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--hc-text-muted);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge.is-active,
+.badge.is-sent,
+.badge.is-accepted {
+  background: var(--hc-success-bg);
+  color: var(--hc-success);
+}
+
+.badge.is-pending,
+.badge.is-failed {
+  background: var(--hc-warning-bg);
+  color: var(--hc-warning);
+}
+
+.badge.is-disabled,
+.badge.is-revoked,
+.badge.is-expired {
+  background: var(--hc-danger-bg);
+  color: var(--hc-danger);
+}
+
+.icon-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.icon-btn,
+.ghost-btn,
+.primary-btn,
+.danger-btn {
+  border-radius: 10px;
+  border: 1px solid transparent;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+}
+
+.primary-btn {
+  background: var(--hc-navy);
+  color: #fff;
+}
+
+.primary-btn:disabled,
+.ghost-btn:disabled,
+.icon-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ghost-btn,
+.icon-btn {
+  background: #fff;
+  border-color: var(--hc-border);
+  color: var(--hc-navy);
+}
+
+.danger-btn {
+  background: var(--hc-danger-bg);
+  color: var(--hc-danger);
+  border-color: #f3c5c1;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 35, 59, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 40;
+  padding: 1rem;
+}
+
+.modal-card {
+  width: min(100%, 560px);
+  background: #fff;
+  border-radius: var(--hc-radius);
+  border: 1px solid var(--hc-border);
+  box-shadow: var(--hc-shadow);
+  padding: 1.2rem;
+}
+
+.modal-card h3 {
+  margin: 0 0 0.35rem;
+  font-family: var(--hc-display);
+}
+
+.form-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.form-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-grid .field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.form-grid input,
+.form-grid select,
+.form-grid textarea {
+  border: 1px solid var(--hc-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.skeleton-row {
+  height: 2.5rem;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #eef2f8, #f8fafc, #eef2f8);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+  margin-bottom: 0.5rem;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.empty-state {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--hc-text-muted);
+}
+
+.hc-toast {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 50;
+  max-width: min(90vw, 360px);
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  box-shadow: var(--hc-shadow);
+  font-weight: 600;
+}
+
+.hc-toast.is-success {
+  background: var(--hc-navy);
+  color: #fff;
+}
+
+.hc-toast.is-error {
+  background: var(--hc-danger);
+  color: #fff;
+}
+
+.perm-module {
+  border: 1px solid var(--hc-border);
+  border-radius: 12px;
+  padding: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.perm-module h4 {
+  margin: 0 0 0.55rem;
+  text-transform: capitalize;
+}
+
+.perm-list {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.perm-list label {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.92rem;
+}
+
+.pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--hc-border);
+  border-radius: 999px;
+  padding: 0.2rem 0.35rem 0.2rem 0.55rem;
+  background: #fff;
+}
+
+.chip-inactive {
+  opacity: 0.65;
+  background: rgba(20, 35, 59, 0.04);
+}
+
+.chip-name {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: var(--hc-navy);
+  padding: 0.15rem 0.25rem;
+}
+
+.chip-name:disabled {
+  cursor: default;
+}
+
+.chip-remove {
+  border: 0;
+  background: transparent;
+  color: var(--hc-text-muted);
+  cursor: pointer;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+.chip-remove:hover {
+  background: rgba(20, 35, 59, 0.08);
+  color: var(--hc-navy);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.pill.tone-green { background: var(--hc-success-bg); color: var(--hc-success); }
+.pill.tone-red { background: rgba(180, 35, 24, 0.12); color: var(--hc-danger); }
+.pill.tone-amber { background: var(--hc-warning-bg); color: var(--hc-warning); }
+.pill.tone-blue { background: rgba(29, 52, 84, 0.12); color: var(--hc-navy); }
+.pill.tone-none { background: rgba(20, 35, 59, 0.06); color: var(--hc-navy); }
+
+@media (max-width: 900px) {
+  .form-grid.two {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-toolbar .field {
+    min-width: 100%;
+    flex: 1 1 100%;
+  }
+}

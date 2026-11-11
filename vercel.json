@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://YOUR_HARMONIQ_CREATIVE_API.onrender.com/api/:path*"
+    },
+    { "source": "/register", "destination": "/index.html" },
+    { "source": "/login", "destination": "/index.html" },
+    { "source": "/verify-email", "destination": "/index.html" },
+    { "source": "/forgot-password", "destination": "/index.html" },
+    { "source": "/reset-password", "destination": "/index.html" },
+    { "source": "/accept-invitation", "destination": "/index.html" },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

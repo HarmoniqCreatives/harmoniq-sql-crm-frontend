@@ -1,0 +1,28 @@
+:root {
+  --hc-navy: #14233b;
+  --hc-navy-active: #1d3454;
+  --hc-gold: #d7ad5b;
+  --hc-gold-soft: #f3e6c7;
+  --hc-bg: #f4f6fa;
+  --hc-surface: #ffffff;
+  --hc-surface-muted: #eef2f8;
+  --hc-border: #d9e0ec;
+  --hc-border-strong: #c3cede;
+  --hc-text: #14233b;
+  --hc-text-muted: #5b6b82;
+  --hc-success: #1f7a4d;
+  --hc-success-bg: #e8f6ee;
+  --hc-warning: #9a6b12;
+  --hc-warning-bg: #fff6e5;
+  --hc-danger: #b42318;
+  --hc-danger-bg: #fdeceb;
+  --hc-shadow: 0 10px 30px rgba(20, 35, 59, 0.08);
+  --hc-shadow-sm: 0 2px 8px rgba(20, 35, 59, 0.06);
+  --hc-radius: 14px;
+  --hc-radius-sm: 10px;
+  --hc-sidebar-width: 268px;
+  --hc-sidebar-collapsed: 84px;
+  --hc-font: "Manrope", "Segoe UI", sans-serif;
+  --hc-display: "Source Serif 4", Georgia, serif;
+  --hc-transition: 180ms ease;
+}
