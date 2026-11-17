@@ -1,24 +1,25 @@
 /* Meta Integration — Harmoniq SaaS layout */
 
 .meta-page {
-  --meta-navy: #14233b;
-  --meta-active: #1d3454;
-  --meta-gold: #d7ad5b;
-  --meta-bg: #f4f6fa;
-  --meta-surface: #ffffff;
-  --meta-border: rgba(20, 35, 59, 0.08);
-  --meta-muted: #5a6a7e;
-  --meta-success: #1b7a4e;
-  --meta-danger: #b42318;
-  --meta-warn: #9a6700;
-  --meta-radius: 16px;
-  --meta-radius-sm: 12px;
-  --meta-shadow: 0 8px 24px rgba(20, 35, 59, 0.06);
+  --meta-navy: var(--hc-navy);
+  --meta-active: var(--hc-navy-active);
+  --meta-gold: var(--hc-gold);
+  --meta-bg: var(--hc-bg);
+  --meta-surface: var(--hc-surface);
+  --meta-border: var(--hc-border);
+  --meta-muted: var(--hc-text-muted);
+  --meta-success: var(--hc-success);
+  --meta-danger: var(--hc-danger);
+  --meta-warn: var(--hc-warning);
+  --meta-radius: var(--hc-radius);
+  --meta-radius-sm: var(--hc-radius-sm);
+  --meta-shadow: var(--hc-shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  padding-bottom: 2rem;
+  gap: var(--hc-space-3);
+  padding-bottom: 0;
   color: var(--meta-navy);
+  font-size: var(--hc-fs-body);
 }
 
 .meta-page .admin-error {
@@ -60,24 +61,24 @@
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem 1.5rem;
-  padding: 1.5rem 1.75rem;
+  gap: 0.75rem 1.1rem;
+  padding: 1rem 1.15rem;
   border-radius: var(--meta-radius);
   background:
-    radial-gradient(120% 140% at 100% 0%, rgba(215, 173, 91, 0.18), transparent 55%),
+    radial-gradient(120% 140% at 100% 0%, rgba(215, 173, 91, 0.16), transparent 55%),
     linear-gradient(135deg, var(--meta-navy) 0%, var(--meta-active) 100%);
   color: #fff;
   box-shadow: var(--meta-shadow);
 }
 
 .meta-hero-copy {
-  max-width: 40rem;
+  max-width: 38rem;
 }
 
 .meta-hero-eyebrow {
-  margin: 0 0 0.35rem;
-  font-size: 0.72rem;
-  font-weight: 700;
+  margin: 0 0 0.25rem;
+  font-size: var(--hc-fs-nav-label);
+  font-weight: var(--hc-fw-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--meta-gold);
@@ -85,16 +86,16 @@
 
 .meta-hero h1 {
   margin: 0;
-  font-size: clamp(1.45rem, 2.4vw, 1.85rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  font-size: var(--hc-fs-page-title);
+  font-weight: var(--hc-fw-bold);
+  letter-spacing: -0.01em;
+  line-height: var(--hc-lh-tight);
 }
 
 .meta-hero-sub {
-  margin: 0.55rem 0 0;
-  font-size: 0.95rem;
-  line-height: 1.5;
+  margin: 0.4rem 0 0;
+  font-size: var(--hc-fs-helper);
+  line-height: var(--hc-lh-body);
   color: rgba(255, 255, 255, 0.78);
 }
 
@@ -109,23 +110,22 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
-  min-height: 2.5rem;
-  padding: 0.55rem 1.15rem;
+  gap: 0.4rem;
+  min-height: var(--hc-control-height);
+  padding: var(--hc-btn-pad-y) 1rem;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--hc-radius-control);
   background: var(--meta-gold);
   color: var(--meta-navy);
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: var(--hc-fs-btn);
+  font-weight: var(--hc-fw-bold);
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-  box-shadow: 0 4px 14px rgba(215, 173, 91, 0.35);
+  transition: box-shadow var(--hc-transition), background var(--hc-transition);
+  box-shadow: 0 2px 8px rgba(215, 173, 91, 0.3);
 }
 
 .meta-btn-primary:hover:not(:disabled) {
   background: #e0bc6f;
-  transform: translateY(-1px);
 }
 
 .meta-btn-primary:focus-visible {
@@ -143,17 +143,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  min-height: 2.5rem;
-  padding: 0.5rem 1rem;
+  gap: 0.35rem;
+  min-height: var(--hc-control-height);
+  padding: var(--hc-btn-pad-y) 0.9rem;
   border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 999px;
+  border-radius: var(--hc-radius-control);
   background: transparent;
   color: #fff;
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: var(--hc-fs-btn);
+  font-weight: var(--hc-fw-semibold);
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background var(--hc-transition), border-color var(--hc-transition);
 }
 
 .meta-btn-secondary:hover:not(:disabled) {
@@ -170,17 +170,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  min-height: 2.25rem;
-  padding: 0.4rem 0.9rem;
+  gap: 0.35rem;
+  min-height: var(--hc-control-height);
+  padding: var(--hc-btn-pad-y) 0.85rem;
   border: 1px solid var(--meta-border);
-  border-radius: 999px;
+  border-radius: var(--hc-radius-control);
   background: var(--meta-surface);
   color: var(--meta-navy);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: var(--hc-fs-btn);
+  font-weight: var(--hc-fw-semibold);
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background var(--hc-transition), border-color var(--hc-transition);
 }
 
 .meta-btn-ghost:hover:not(:disabled) {
@@ -206,17 +206,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  min-height: 2.35rem;
-  padding: 0.45rem 1rem;
+  gap: 0.35rem;
+  min-height: var(--hc-control-height);
+  padding: var(--hc-btn-pad-y) 0.9rem;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--hc-radius-control);
   background: var(--meta-navy);
   color: #fff;
-  font-size: 0.875rem;
-  font-weight: 650;
+  font-size: var(--hc-fs-btn);
+  font-weight: var(--hc-fw-semibold);
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition: background var(--hc-transition);
 }
 
 .meta-btn-solid:hover:not(:disabled) {
@@ -300,6 +300,45 @@
   text-overflow: ellipsis;
 }
 
+/* —— Default assignee —— */
+.meta-assignee-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.85rem 1rem;
+}
+
+.meta-assignee-field {
+  flex: 1 1 16rem;
+  min-width: 12rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.meta-assignee-field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--meta-navy);
+}
+
+.meta-assignee-field select {
+  width: 100%;
+  min-height: var(--hc-control-height);
+  padding: var(--hc-control-pad-y) var(--hc-control-pad-x);
+  border-radius: var(--hc-radius-control);
+  font-size: var(--hc-fs-body);
+  border-radius: 10px;
+  border: 1px solid var(--meta-border);
+  background: #fff;
+  color: var(--meta-navy);
+  font: inherit;
+}
+
+.meta-assignee-field select:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 /* —— Overview cards —— */
 .meta-overview {
   display: grid;
@@ -310,8 +349,8 @@
 .meta-stat-card {
   display: flex;
   align-items: flex-start;
-  gap: 0.85rem;
-  padding: 1.1rem 1.15rem;
+  gap: 0.7rem;
+  padding: 0.85rem 0.95rem;
   border-radius: var(--meta-radius);
   background: var(--meta-surface);
   border: 1px solid var(--meta-border);
@@ -320,11 +359,11 @@
 
 .meta-stat-icon {
   flex-shrink: 0;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.1rem;
+  height: 2.1rem;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: var(--hc-radius-sm);
   background: rgba(20, 35, 59, 0.06);
   color: var(--meta-navy);
 }
@@ -350,7 +389,7 @@
 
 .meta-stat-value {
   margin: 0;
-  font-size: 1.55rem;
+  font-size: var(--hc-fs-kpi);
   font-weight: 750;
   letter-spacing: -0.03em;
   line-height: 1.1;
@@ -358,9 +397,9 @@
 }
 
 .meta-stat-label {
-  margin: 0.25rem 0 0;
-  font-size: 0.8rem;
-  font-weight: 600;
+  margin: 0.2rem 0 0;
+  font-size: var(--hc-fs-label);
+  font-weight: var(--hc-fw-semibold);
   color: var(--meta-muted);
 }
 
@@ -378,21 +417,21 @@
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.75rem 1rem;
-  padding: 1.15rem 1.35rem 0.85rem;
+  gap: 0.55rem 0.85rem;
+  padding: 0.9rem 1.05rem 0.65rem;
 }
 
 .meta-panel-head h2 {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: var(--hc-fs-card-title);
+  font-weight: var(--hc-fw-bold);
   letter-spacing: -0.01em;
 }
 
 .meta-panel-hint {
-  margin: 0.3rem 0 0;
-  font-size: 0.85rem;
-  line-height: 1.45;
+  margin: 0.25rem 0 0;
+  font-size: var(--hc-fs-helper);
+  line-height: var(--hc-lh-body);
   color: var(--meta-muted);
   max-width: 42rem;
 }
@@ -405,7 +444,7 @@
 }
 
 .meta-panel-body {
-  padding: 0 1.35rem 1.35rem;
+  padding: 0 1.05rem 1.05rem;
 }
 
 /* —— Empty / skeleton —— */

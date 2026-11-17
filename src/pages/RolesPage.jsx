@@ -75,7 +75,7 @@ export function RolesPage() {
       <Toast notice={notice} error={error} onClear={() => { setNotice(''); setError('') }} />
       <div className="admin-toolbar">
         <div>
-          <h3 style={{ margin: 0 }}>Role List</h3>
+          <h3 className="page-heading">Role List</h3>
           <p className="sub" style={{ margin: '0.25rem 0 0' }}>Create reusable roles and control access by module and action.</p>
         </div>
         <div className="icon-actions">

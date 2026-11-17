@@ -1,10 +1,12 @@
 import axios from 'axios'
+import { createAuthResponseInterceptor } from './authRefresh'
 
 /**
  * Axios API client for Harmoniq Creative CRM.
  *
  * - `withCredentials` so httpOnly refresh cookies are sent on `/api/auth/*`
  * - Access JWT is attached from localStorage on each request
+ * - On 401: refresh once (single-flight), retry original request; failure clears auth
  * - Prefer `readApiError` to surface server `{ error.message }` strings in the UI
  */
 
@@ -23,6 +25,28 @@ api.interceptors.request.use((config) => {
   }
   return config
 })
+
+let authFailureHandler = null
+
+/** Registers SPA handler invoked when refresh fails after a 401 (clears user). */
+export function setAuthFailureHandler(handler) {
+  authFailureHandler = typeof handler === 'function' ? handler : null
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  createAuthResponseInterceptor({
+    api,
+    refreshSession: () => api.post('/auth/refresh', {}).then((response) => response.data),
+    setAccessToken,
+    clearAccessToken,
+    onAuthFailure: () => {
+      if (authFailureHandler) {
+        authFailureHandler()
+      }
+    },
+  }),
+)
 
 /** Persists or clears the short-lived access token (never store refresh tokens here). */
 export function setAccessToken(token) {
@@ -277,9 +301,46 @@ export async function updateCompany(body) {
   return response.data
 }
 
+export async function setEmailReportsEnabled(enabled) {
+  const response = await api.patch('/company/email-reports/enabled', { enabled })
+  return response.data
+}
+
+export async function createEmailReport(body) {
+  const response = await api.post('/company/email-reports', body)
+  return response.data
+}
+
+export async function updateEmailReport(id, body) {
+  const response = await api.patch(`/company/email-reports/${id}`, body)
+  return response.data
+}
+
+export async function deleteEmailReport(id) {
+  const response = await api.delete(`/company/email-reports/${id}`)
+  return response.data
+}
+
 export async function listLeads(params) {
   const response = await api.get('/leads', { params })
   return response.data
+}
+
+export async function listLeadPageTypes() {
+  const response = await api.get('/leads/page-types')
+  return response.data
+}
+
+/**
+ * Downloads a lead report file (csv|xlsx) with the given filters.
+ * @param {Record<string, string>} params
+ */
+export async function exportLeads(params) {
+  const response = await api.get('/leads/export', {
+    params,
+    responseType: 'blob',
+  })
+  return response
 }
 
 export async function getLead(id) {

@@ -195,6 +195,12 @@ export function UsersPage() {
     <div>
       <Toast notice={notice} error={error} onClear={() => { setNotice(''); setError('') }} />
       <div className="admin-toolbar">
+        <div style={{ flex: '1 1 100%' }}>
+          <h3 className="page-heading">Users & invitations</h3>
+          <p className="sub" style={{ margin: '0.2rem 0 0' }}>
+            Invite teammates and manage active accounts for this company.
+          </p>
+        </div>
         <div className="field">
           <label htmlFor="search">Search</label>
           <input id="search" value={search} onChange={(e) => { setPage(1); setSearch(e.target.value) }} placeholder="Name, email, mobile" />
@@ -322,7 +328,7 @@ export function UsersPage() {
 
       {canInvite ? (
         <div className="admin-panel" style={{ marginTop: '1rem' }}>
-          <h3 style={{ marginTop: 0 }}>Pending invitations</h3>
+          <h3 className="card-heading">Pending invitations</h3>
           {invitations.filter((row) => row.status === 'PENDING').length === 0 ? (
             <p className="empty-state">No pending invitations.</p>
           ) : (

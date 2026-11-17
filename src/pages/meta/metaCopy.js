@@ -3,7 +3,7 @@
  */
 export const metaCopy = {
   eyebrow: 'Integrations',
-  title: 'Meta Integration',
+  title: 'Facebook Integration',
   subtitle: 'Manage Facebook accounts, Pages and Lead Ads connections.',
 
   connectFacebook: 'Connect Facebook',
@@ -114,4 +114,12 @@ export const metaCopy = {
   fieldAppSecret: 'Enter the App Secret.',
   reconnectHint: 'Reconnect Facebook before syncing leads.',
   retryHint: 'If a sync fails, wait a moment and press Sync Now again.',
+
+  assigneeTitle: 'Default lead assignee',
+  assigneeHint: 'New Meta Lead Ads imports are assigned to this active teammate. Leave empty to import unassigned.',
+  assigneeLabel: 'Assignee',
+  assigneeNone: 'No default assignee',
+  assigneeSave: 'Save assignee',
+  assigneeSaved: 'Default lead assignee saved.',
+  assigneeCleared: 'Default lead assignee cleared.',
 }

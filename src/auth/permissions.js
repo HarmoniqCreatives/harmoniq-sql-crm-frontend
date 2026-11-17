@@ -38,7 +38,10 @@ export const perm = {
   leadsDelete: 'leads.delete',
   leadsAssign: 'leads.assign',
   leadsBulk: 'leads.bulk',
+  reportsView: 'reports.view',
   metaView: 'meta.view',
   metaManage: 'meta.manage',
   metaPagesManage: 'meta.pages.manage',
+  whatsappManage: 'whatsapp.manage',
+  whatsappViewLogs: 'whatsapp.view_logs',
 }

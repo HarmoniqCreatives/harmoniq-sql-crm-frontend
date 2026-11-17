@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { listCompanies, readApiError } from '../../api/client'
 import { useAuth } from '../../auth/AuthContext'
 import { AuthCard, AuthLinks } from '../../components/AuthCard'
 import { PasswordInput } from '../../components/PasswordInput'
+import { resolveLoginReturnPath } from '../../auth/loginReturn'
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { signIn, user } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -14,12 +16,13 @@ export function LoginPage() {
   const [companies, setCompanies] = useState([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const returnPath = resolveLoginReturnPath(location.state?.from)
 
   useEffect(() => {
     if (user) {
-      navigate('/', { replace: true })
+      navigate(returnPath, { replace: true })
     }
-  }, [user, navigate])
+  }, [user, navigate, returnPath])
 
   useEffect(() => {
     let active = true
@@ -64,7 +67,7 @@ export function LoginPage() {
         body.companyId = companyId
       }
       await signIn(body)
-      navigate('/', { replace: true })
+      navigate(returnPath, { replace: true })
     } catch (submitError) {
       setError(readApiError(submitError))
     } finally {

@@ -7,6 +7,7 @@ import {
   logout as logoutRequest,
   refreshSession,
   setAccessToken,
+  setAuthFailureHandler,
 } from '../api/client'
 
 const AuthContext = createContext(null)
@@ -15,14 +16,24 @@ const AuthContext = createContext(null)
  * Provides signed-in user state for the SPA shell.
  *
  * Boot sequence: read access token → GET /auth/me → on failure try refresh cookie
- * → clear tokens if both fail. `signIn` stores the access token locally; refresh
- * tokens prefer the httpOnly cookie set by the API.
+ * → clear tokens if both fail. Mid-session 401s are handled by the Axios interceptor
+ * (single-flight refresh + retry); failed refresh clears auth via setAuthFailureHandler.
  *
  * @param {{ children: import('react').ReactNode }} props
  */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setAuthFailureHandler(() => {
+      clearAccessToken()
+      setUser(null)
+    })
+    return () => {
+      setAuthFailureHandler(null)
+    }
+  }, [])
 
   useEffect(() => {
     let active = true

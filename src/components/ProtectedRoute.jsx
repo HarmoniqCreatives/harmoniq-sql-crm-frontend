@@ -14,7 +14,19 @@ export function ProtectedRoute({ children }) {
     return <div className="content"><p className="sub">Loading workspace…</p></div>
   }
   if (!user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: {
+            pathname: location.pathname,
+            search: location.search || '',
+            hash: location.hash || '',
+          },
+        }}
+      />
+    )
   }
   return children
 }

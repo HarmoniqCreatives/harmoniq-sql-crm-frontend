@@ -106,6 +106,10 @@ export function MetaIntegrationsPage() {
   const [confirmDisconnectPage, setConfirmDisconnectPage] = useState(null)
   const [assetPanel, setAssetPanel] = useState(null)
 
+  const [assigneeAgents, setAssigneeAgents] = useState([])
+  const [assigneeId, setAssigneeId] = useState('')
+  const [savedAssigneeId, setSavedAssigneeId] = useState('')
+
   const syncByPage = useMemo(
     () => new Map(activeSyncs.map((row) => [row.pageId, row])),
     [activeSyncs],
@@ -120,11 +124,12 @@ export function MetaIntegrationsPage() {
     setLoading(true)
     setError('')
     try {
-      const [profilesRes, connectionsRes, pagesRes, countsRes] = await Promise.all([
+      const [profilesRes, connectionsRes, pagesRes, countsRes, assigneeRes] = await Promise.all([
         api.get('/meta/profiles'),
         api.get('/meta/connections'),
         api.get('/meta/pages', { params: { limit: LIST_LIMIT, page: pageValue } }),
         api.get('/meta/lead-counts'),
+        api.get('/meta/default-assignee'),
       ])
       const nextPages = pagesRes.data?.data?.pages || []
       setProfiles(profilesRes.data?.data?.profiles || [])
@@ -138,6 +143,12 @@ export function MetaIntegrationsPage() {
         skipped: counts.skipped || 0,
         pages: counts.pages || {},
       })
+      const agents = assigneeRes.data?.data?.agents || []
+      const assignee = assigneeRes.data?.data?.assignee
+      const nextAssigneeId = assignee?.id || ''
+      setAssigneeAgents(agents)
+      setAssigneeId(nextAssigneeId)
+      setSavedAssigneeId(nextAssigneeId)
 
       for (const page of nextPages) {
         const job = page.latestSyncJob
@@ -240,6 +251,32 @@ export function MetaIntegrationsPage() {
       }
       closeProfileModal()
       await load(pageNumber)
+    } catch (err) {
+      setError(readApiError(err))
+    } finally {
+      setBusyKey('')
+    }
+  }
+
+  async function saveDefaultAssignee(event) {
+    event.preventDefault()
+    if (!canManage) {
+      setError(copy.manageRequired)
+      return
+    }
+    setBusyKey('save-assignee')
+    setError('')
+    setNotice('')
+    try {
+      const response = await api.patch('/meta/default-assignee', {
+        userId: assigneeId || null,
+      })
+      const next = response.data?.data?.assignee
+      const nextId = next?.id || ''
+      setAssigneeAgents(response.data?.data?.agents || assigneeAgents)
+      setAssigneeId(nextId)
+      setSavedAssigneeId(nextId)
+      setNotice(nextId ? copy.assigneeSaved : copy.assigneeCleared)
     } catch (err) {
       setError(readApiError(err))
     } finally {
@@ -580,6 +617,47 @@ export function MetaIntegrationsPage() {
           </div>
         </article>
       </div>
+
+      {/* Default Meta lead assignee */}
+      <section className="meta-panel">
+        <div className="meta-panel-head">
+          <div>
+            <h2>{copy.assigneeTitle}</h2>
+            <p className="meta-panel-hint">{copy.assigneeHint}</p>
+          </div>
+        </div>
+        <div className="meta-panel-body">
+          <form className="meta-assignee-form" onSubmit={saveDefaultAssignee}>
+            <div className="meta-assignee-field">
+              <label htmlFor="meta-default-assignee">{copy.assigneeLabel}</label>
+              <select
+                id="meta-default-assignee"
+                value={assigneeId}
+                disabled={!canManage || Boolean(busyKey) || loading}
+                onChange={(event) => setAssigneeId(event.target.value)}
+              >
+                <option value="">{copy.assigneeNone}</option>
+                {assigneeAgents.map((agent) => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.name} ({agent.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+            {canManage ? (
+              <button
+                type="submit"
+                className="meta-btn-solid gold"
+                disabled={Boolean(busyKey) || assigneeId === savedAssigneeId}
+              >
+                {busyKey === 'save-assignee' ? copy.working : copy.assigneeSave}
+              </button>
+            ) : (
+              <p className="meta-panel-hint">{copy.manageRequired}</p>
+            )}
+          </form>
+        </div>
+      </section>
 
       {/* Section 3 — App Profiles */}
       <section className="meta-panel">

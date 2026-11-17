@@ -27,6 +27,11 @@ import {
   sourceOptions,
 } from './leads/leadCopy'
 import { isEmail, isPastDateValue, normalizeEmail, todayDateValue } from './leads/leadHelpers'
+import {
+  displayCurrentAgentName,
+  buildTransferAssignmentPayload,
+  eligibleTransferAgents,
+} from './leads/transferFormHelpers'
 
 const pageSize = 20
 
@@ -1322,58 +1327,52 @@ function FeedbackDialog({ lead, onClose, onSaved }) {
   )
 }
 
-// Exists so a lead can move to another agent only after the transfer is confirmed.
+/**
+ * Transfer lead dialog (Mongo CRM parity): read-only Current Agent,
+ * Transfer To Agent dropdown (excludes current), optional Reason.
+ * Secondary agent is never edited here — backend keeps it unchanged.
+ */
 function TransferDialog({ lead, agents, onClose, onSaved }) {
   const [primaryAgentId, setPrimaryAgentId] = useState('')
-  const [secondaryAgentId, setSecondaryAgentId] = useState('')
-  const [confirmed, setConfirmed] = useState(false)
   const [reason, setReason] = useState('')
   const [formError, setFormError] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const currentAgentId = lead?.primaryAgent?.id || ''
+  const currentName = displayCurrentAgentName(lead, messages.unassignedAgent)
+  const transferAgents = eligibleTransferAgents(agents, currentAgentId)
 
   useEffect(() => {
     if (!lead) {
       return
     }
     setPrimaryAgentId('')
-    setSecondaryAgentId('')
-    if (lead.secondaryAgent) {
-      setSecondaryAgentId(lead.secondaryAgent.id)
-    }
-    setConfirmed(false)
     setReason('')
     setFormError('')
     setSaving(false)
   }, [lead])
 
-  // Exists so Save sends the new agents and the reason only after the confirmation is checked.
   async function onSubmit(event) {
     event.preventDefault()
-    if (!lead) {
-      return
-    }
-    if (saving) {
-      return
-    }
-    if (!confirmed) {
+    if (!lead || saving) {
       return
     }
     if (!primaryAgentId) {
+      setFormError(errors.transferAgentRequired)
       return
     }
-    const trimmedReason = reason.trim()
-    if (!trimmedReason) {
-      setFormError(errors.transferReasonRequired)
+    if (currentAgentId && primaryAgentId === currentAgentId) {
+      setFormError(errors.transferSameAgent)
       return
     }
     setSaving(true)
     setFormError('')
     try {
-      const payload = await assignLead(lead.id, {
-        primaryAgentId,
-        secondaryAgentId,
-        reason: trimmedReason,
-      })
+      // Omit secondaryAgentId so the server preserves the existing secondary.
+      const payload = await assignLead(
+        lead.id,
+        buildTransferAssignmentPayload(primaryAgentId, reason),
+      )
       await onSaved(payload.data.message)
     } catch (submitError) {
       setFormError(readApiError(submitError))
@@ -1382,10 +1381,6 @@ function TransferDialog({ lead, agents, onClose, onSaved }) {
     }
   }
 
-  let currentName = messages.noneAgent
-  if (lead && lead.primaryAgent) {
-    currentName = lead.primaryAgent.name
-  }
   return (
     <HarmoniqModal
       open={Boolean(lead)}
@@ -1394,38 +1389,52 @@ function TransferDialog({ lead, agents, onClose, onSaved }) {
       footer={(
         <>
           <button type="button" className="ghost-btn" onClick={onClose}>{messages.cancel}</button>
-          <button type="submit" form="lead-transfer-form" className="primary-btn" disabled={saving || !confirmed || !primaryAgentId}>{messages.save}</button>
+          <button
+            type="submit"
+            form="lead-transfer-form"
+            className="primary-btn"
+            disabled={saving || !primaryAgentId}
+          >
+            {saving ? messages.loading : messages.transferAction}
+          </button>
         </>
       )}
     >
-      <form id="lead-transfer-form" onSubmit={onSubmit}>
+      <form id="lead-transfer-form" className="transfer-form" onSubmit={onSubmit}>
         {formError ? <p className="auth-error">{formError}</p> : null}
         <div className="manage-field">
-          <label htmlFor="transfer-current">{messages.currentPrimary}</label>
-          <input id="transfer-current" value={currentName} readOnly />
+          <label htmlFor="transfer-current">{messages.currentAgent}</label>
+          <input
+            id="transfer-current"
+            className="transfer-current-input"
+            value={currentName}
+            readOnly
+            aria-readonly="true"
+          />
         </div>
         <div className="manage-field">
-          <label htmlFor="transfer-primary">{messages.newPrimary}</label>
-          <select id="transfer-primary" value={primaryAgentId} onChange={(event) => setPrimaryAgentId(event.target.value)}>
-            <option value="">{messages.noneAgent}</option>
-            {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
+          <label htmlFor="transfer-primary">{messages.transferToAgent}</label>
+          <select
+            id="transfer-primary"
+            value={primaryAgentId}
+            required
+            onChange={(event) => setPrimaryAgentId(event.target.value)}
+          >
+            <option value="">{messages.chooseTransferAgent}</option>
+            {transferAgents.map((agent) => (
+              <option key={agent.id} value={agent.id}>{agent.name}</option>
+            ))}
           </select>
         </div>
         <div className="manage-field">
-          <label htmlFor="transfer-secondary">{messages.secondaryAgent}</label>
-          <select id="transfer-secondary" value={secondaryAgentId} onChange={(event) => setSecondaryAgentId(event.target.value)}>
-            <option value="">{messages.noneAgent}</option>
-            {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
-          </select>
+          <label htmlFor="transfer-reason">{messages.transferReasonOptional}</label>
+          <textarea
+            id="transfer-reason"
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder={messages.transferReasonOptional}
+          />
         </div>
-        <div className="manage-field">
-          <label htmlFor="transfer-reason">{messages.transferReason}</label>
-          <textarea id="transfer-reason" value={reason} onChange={(event) => setReason(event.target.value)} />
-        </div>
-        <label className="check-line">
-          <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
-          {messages.transferConfirm}
-        </label>
       </form>
     </HarmoniqModal>
   )

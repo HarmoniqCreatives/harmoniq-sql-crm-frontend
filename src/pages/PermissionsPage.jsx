@@ -108,7 +108,7 @@ export function PermissionsPage() {
       <Toast notice={notice} error={error} onClear={() => { setNotice(''); setError('') }} />
       <div className="admin-toolbar">
         <div>
-          <h3 style={{ margin: 0 }}>Manage Permissions</h3>
+          <h3 className="page-heading">Manage Permissions</h3>
           <p className="sub" style={{ margin: '0.25rem 0 0' }}>Select a role, then enable only the permissions it needs.</p>
         </div>
       </div>

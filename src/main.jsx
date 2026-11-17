@@ -7,6 +7,7 @@ import './styles/auth.css'
 import './styles/admin.css'
 import './styles/leads.css'
 import './styles/meta.css'
+import './styles/integrations.css'
 import './styles/password-input.css'
 
 createRoot(document.getElementById('root')).render(

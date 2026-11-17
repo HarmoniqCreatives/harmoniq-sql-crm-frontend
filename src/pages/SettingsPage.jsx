@@ -147,7 +147,7 @@ export function SettingsPage() {
       <Toast notice={notice} error={error} onClear={() => { setNotice(''); setError('') }} />
       <div className="admin-toolbar">
         <div>
-          <h3 style={{ margin: 0 }}>Settings</h3>
+          <h3 className="page-heading">Catalog & company defaults</h3>
           <p className="sub" style={{ margin: '0.25rem 0 0' }}>
             Manage shared statuses, tags, activity types and company defaults.
           </p>
@@ -198,7 +198,7 @@ export function SettingsPage() {
             onDelete={removeItem}
           />
           <div className="admin-panel">
-            <h3 style={{ marginTop: 0 }}>Company defaults</h3>
+            <h3 className="card-heading">Company defaults</h3>
             <form className="form-grid" onSubmit={saveCompany}>
               <div className="field">
                 <label htmlFor="company-timezone">Timezone</label>
@@ -284,7 +284,7 @@ function CatalogCard({
 
   return (
     <div className="admin-panel">
-      <h3 style={{ marginTop: 0 }}>{title}</h3>
+      <h3 className="card-heading">{title}</h3>
       <div className="field" style={{ marginBottom: '0.75rem' }}>
         <label htmlFor={`${kind}-search`}>Search</label>
         <input
