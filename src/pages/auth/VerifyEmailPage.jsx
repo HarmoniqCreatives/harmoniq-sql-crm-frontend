@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { readApiError, resendVerification, verifyEmail } from '../../api/client'
+import { listCompanies, readApiError, resendVerification, verifyEmail } from '../../api/client'
 import { AuthCard, AuthLinks } from '../../components/AuthCard'
 
 export function VerifyEmailPage() {
@@ -9,6 +9,8 @@ export function VerifyEmailPage() {
   const navigate = useNavigate()
   const [email, setEmail] = useState(params.get('email') || '')
   const [token, setToken] = useState(params.get('token') || '')
+  const [companyId, setCompanyId] = useState(location.state?.companyId || '')
+  const [companies, setCompanies] = useState([])
   const [error, setError] = useState('')
   const [notice, setNotice] = useState(location.state?.notice || '')
   const [busy, setBusy] = useState(false)
@@ -43,6 +45,40 @@ export function VerifyEmailPage() {
     }
   }, [params, navigate])
 
+  useEffect(() => {
+    let active = true
+    async function loadCompanies() {
+      if (!email.includes('@')) {
+        setCompanies([])
+        return
+      }
+      try {
+        const payload = await listCompanies(email.trim().toLowerCase())
+        if (!active) {
+          return
+        }
+        const next = payload.data.companies || []
+        setCompanies(next)
+        if (next.length === 1) {
+          setCompanyId(next[0].id)
+        } else if (location.state?.companyId && next.some((company) => company.id === location.state.companyId)) {
+          setCompanyId(location.state.companyId)
+        } else {
+          setCompanyId('')
+        }
+      } catch {
+        if (active) {
+          setCompanies([])
+        }
+      }
+    }
+    const timer = setTimeout(loadCompanies, 350)
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [email, location.state?.companyId])
+
   async function onVerify(event) {
     event.preventDefault()
     setError('')
@@ -65,10 +101,11 @@ export function VerifyEmailPage() {
     setNotice('')
     setBusy(true)
     try {
-      const payload = await resendVerification({
-        email,
-        companyId: location.state?.companyId || undefined,
-      })
+      const body = { email }
+      if (companies.length > 1 || companyId) {
+        body.companyId = companyId
+      }
+      const payload = await resendVerification(body)
       setNotice(payload.data.message)
     } catch (resendError) {
       setError(readApiError(resendError))
@@ -97,8 +134,25 @@ export function VerifyEmailPage() {
           <label htmlFor="email">Resend to email</label>
           <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy} />
         </div>
+        {companies.length > 1 ? (
+          <div className="auth-field">
+            <label htmlFor="companyId">Company</label>
+            <select id="companyId" value={companyId} onChange={(e) => setCompanyId(e.target.value)} required disabled={busy}>
+              <option value="">Select company</option>
+              {companies.map((company) => (
+                <option key={company.id} value={company.id}>{company.name}</option>
+              ))}
+            </select>
+          </div>
+        ) : null}
         <div className="auth-actions">
-          <button type="submit" className="ghost-btn" disabled={busy || !email}>Resend verification</button>
+          <button
+            type="submit"
+            className="ghost-btn"
+            disabled={busy || !email || (companies.length > 1 && !companyId)}
+          >
+            Resend verification
+          </button>
         </div>
       </form>
       <AuthLinks items={[
