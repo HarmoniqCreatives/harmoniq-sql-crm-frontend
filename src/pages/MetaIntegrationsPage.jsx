@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, readApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
@@ -105,6 +105,12 @@ export function MetaIntegrationsPage() {
   const [confirmDisconnectAccount, setConfirmDisconnectAccount] = useState(null)
   const [confirmDisconnectPage, setConfirmDisconnectPage] = useState(null)
   const [assetPanel, setAssetPanel] = useState(null)
+  const [assetLoading, setAssetLoading] = useState(false)
+  const [assetError, setAssetError] = useState('')
+  const [assetPayload, setAssetPayload] = useState(null)
+  const [assetCache, setAssetCache] = useState({})
+  const [assetForceReload, setAssetForceReload] = useState(0)
+  const assetSkipCacheRef = useRef(false)
 
   const [assigneeAgents, setAssigneeAgents] = useState([])
   const [assigneeId, setAssigneeId] = useState('')
@@ -189,6 +195,69 @@ export function MetaIntegrationsPage() {
   useEffect(() => subscribeMetaPageSync((rows) => {
     setActiveSyncs(rows)
   }), [])
+
+  useEffect(() => {
+    if (!assetPanel?.page?.id || !assetPanel.kind) {
+      setAssetPayload(null)
+      setAssetError('')
+      setAssetLoading(false)
+      return undefined
+    }
+    const key = `${assetPanel.page.id}:${assetPanel.kind}`
+    const skipCache = assetSkipCacheRef.current
+    assetSkipCacheRef.current = false
+    const cached = assetCache[key]
+    if (!skipCache && cached && cached.expiresAt > Date.now()) {
+      setAssetPayload(cached.payload)
+      setAssetError('')
+      setAssetLoading(false)
+      return undefined
+    }
+
+    let cancelled = false
+    async function loadAssets() {
+      setAssetLoading(true)
+      setAssetError('')
+      setAssetPayload(null)
+      try {
+        const path = `/meta/pages/${assetPanel.page.id}/${assetPanel.kind}`
+        const response = await api.get(path)
+        if (cancelled) return
+        const payload = response.data?.data || null
+        setAssetPayload(payload)
+        setAssetCache((prev) => ({
+          ...prev,
+          [key]: { payload, expiresAt: Date.now() + 60_000 },
+        }))
+      } catch (err) {
+        if (cancelled) return
+        setAssetError(readApiError(err) || copy.assetLoadError)
+        setAssetPayload(null)
+      } finally {
+        if (!cancelled) setAssetLoading(false)
+      }
+    }
+    loadAssets()
+    return () => {
+      cancelled = true
+    }
+  }, [assetPanel?.page?.id, assetPanel?.kind, assetForceReload]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function refreshAssetPanel() {
+    if (!assetPanel?.page?.id || !assetPanel.kind) return
+    const key = `${assetPanel.page.id}:${assetPanel.kind}`
+    setAssetCache((prev) => {
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+    assetSkipCacheRef.current = true
+    setAssetForceReload((value) => value + 1)
+  }
+
+  function openAssetPanel(page, kind) {
+    setAssetPanel({ page, kind })
+  }
 
   function openCreateProfile() {
     setProfileModal({ mode: 'create' })
@@ -1024,7 +1093,7 @@ export function MetaIntegrationsPage() {
                         title={copy.ads}
                         aria-label={copy.ads}
                         disabled={!connected}
-                        onClick={() => setAssetPanel({ page, kind: 'ads' })}
+                        onClick={() => openAssetPanel(page, 'ads')}
                       >
                         <MetaActionIcon name="ads" />
                       </button>
@@ -1034,7 +1103,7 @@ export function MetaIntegrationsPage() {
                         title={copy.forms}
                         aria-label={copy.forms}
                         disabled={!connected}
-                        onClick={() => setAssetPanel({ page, kind: 'forms' })}
+                        onClick={() => openAssetPanel(page, 'forms')}
                       >
                         <MetaActionIcon name="forms" />
                       </button>
@@ -1044,7 +1113,7 @@ export function MetaIntegrationsPage() {
                         title={copy.campaigns}
                         aria-label={copy.campaigns}
                         disabled={!connected}
-                        onClick={() => setAssetPanel({ page, kind: 'campaigns' })}
+                        onClick={() => openAssetPanel(page, 'campaigns')}
                       >
                         <MetaActionIcon name="campaigns" />
                       </button>
@@ -1090,7 +1159,7 @@ export function MetaIntegrationsPage() {
         </div>
       </section>
 
-      {/* Ads / Forms / Campaigns placeholders */}
+      {/* Ads / Forms / Campaigns */}
       {assetPanel ? (
         <section className="meta-panel">
           <div className="meta-tabs" role="tablist">
@@ -1101,13 +1170,21 @@ export function MetaIntegrationsPage() {
                 role="tab"
                 className={`meta-tab${assetPanel.kind === kind ? ' active' : ''}`}
                 aria-selected={assetPanel.kind === kind}
-                onClick={() => setAssetPanel({ ...assetPanel, kind })}
+                onClick={() => openAssetPanel(assetPanel.page, kind)}
               >
                 {kind === 'ads' ? copy.ads : null}
                 {kind === 'forms' ? copy.forms : null}
                 {kind === 'campaigns' ? copy.campaigns : null}
               </button>
             ))}
+            <button
+              type="button"
+              className="meta-tab"
+              onClick={refreshAssetPanel}
+              disabled={assetLoading}
+            >
+              {copy.assetRefresh}
+            </button>
             <button type="button" className="meta-tab" style={{ marginLeft: 'auto' }} onClick={() => setAssetPanel(null)}>
               {copy.close}
             </button>
@@ -1120,11 +1197,113 @@ export function MetaIntegrationsPage() {
               {' · '}
               {assetPanel.page.name}
             </h2>
-            <p className="meta-panel-hint">{copy.assetPlaceholderTitle}</p>
-            <p className="meta-panel-hint">{copy.assetPlaceholderBody}</p>
-            <div className="meta-empty" style={{ marginTop: '0.85rem' }}>
-              <p>{copy.assetEmpty}</p>
-            </div>
+            {assetLoading ? (
+              <p className="meta-panel-hint">{copy.assetLoading}</p>
+            ) : null}
+            {assetError ? (
+              <div className="meta-empty" style={{ marginTop: '0.85rem' }}>
+                <p>{assetError}</p>
+                <p className="meta-panel-hint">{copy.assetPermissionHint}</p>
+              </div>
+            ) : null}
+            {!assetLoading && !assetError && assetPanel.kind === 'forms' ? (
+              (assetPayload?.forms || []).length === 0 ? (
+                <div className="meta-empty" style={{ marginTop: '0.85rem' }}>
+                  <p>{copy.assetFormsEmpty}</p>
+                </div>
+              ) : (
+                <div className="table-wrap" style={{ marginTop: '0.85rem' }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>{copy.assetColName}</th>
+                        <th>{copy.assetColId}</th>
+                        <th>{copy.assetColStatus}</th>
+                        <th>{copy.assetColLocale}</th>
+                        <th>{copy.assetColLeads}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {assetPayload.forms.map((row) => (
+                        <tr key={row.id}>
+                          <td>{row.name || '—'}</td>
+                          <td>{row.id || '—'}</td>
+                          <td>{row.status || '—'}</td>
+                          <td>{row.locale || '—'}</td>
+                          <td>{row.leadsCount == null ? '—' : row.leadsCount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            ) : null}
+            {!assetLoading && !assetError && assetPanel.kind === 'campaigns' ? (
+              (assetPayload?.campaigns || []).length === 0 ? (
+                <div className="meta-empty" style={{ marginTop: '0.85rem' }}>
+                  <p>{copy.assetCampaignsEmpty}</p>
+                </div>
+              ) : (
+                <div className="table-wrap" style={{ marginTop: '0.85rem' }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>{copy.assetColName}</th>
+                        <th>{copy.assetColId}</th>
+                        <th>{copy.assetColStatus}</th>
+                        <th>{copy.assetColObjective}</th>
+                        <th>{copy.assetColAdAccount}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {assetPayload.campaigns.map((row) => (
+                        <tr key={`${row.adAccountId}-${row.id}`}>
+                          <td>{row.name || '—'}</td>
+                          <td>{row.id || '—'}</td>
+                          <td>{row.effectiveStatus || row.status || '—'}</td>
+                          <td>{row.objective || '—'}</td>
+                          <td>{row.adAccountName || row.adAccountId || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            ) : null}
+            {!assetLoading && !assetError && assetPanel.kind === 'ads' ? (
+              (assetPayload?.ads || []).length === 0 ? (
+                <div className="meta-empty" style={{ marginTop: '0.85rem' }}>
+                  <p>{copy.assetAdsEmpty}</p>
+                </div>
+              ) : (
+                <div className="table-wrap" style={{ marginTop: '0.85rem' }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>{copy.assetColName}</th>
+                        <th>{copy.assetColId}</th>
+                        <th>{copy.assetColStatus}</th>
+                        <th>{copy.assetColCampaign}</th>
+                        <th>{copy.assetColAdSet}</th>
+                        <th>{copy.assetColAdAccount}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {assetPayload.ads.map((row) => (
+                        <tr key={`${row.adAccountId}-${row.id}`}>
+                          <td>{row.name || '—'}</td>
+                          <td>{row.id || '—'}</td>
+                          <td>{row.effectiveStatus || row.status || '—'}</td>
+                          <td>{row.campaignId || '—'}</td>
+                          <td>{row.adsetId || '—'}</td>
+                          <td>{row.adAccountName || row.adAccountId || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            ) : null}
           </div>
         </section>
       ) : null}
