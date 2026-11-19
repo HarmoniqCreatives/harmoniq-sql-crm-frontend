@@ -115,17 +115,17 @@
   padding: var(--hc-btn-pad-y) 1rem;
   border: none;
   border-radius: var(--hc-radius-control);
-  background: var(--meta-gold);
-  color: var(--meta-navy);
+  background: var(--hc-coral-strong);
+  color: #fff;
   font-size: var(--hc-fs-btn);
   font-weight: var(--hc-fw-bold);
   cursor: pointer;
   transition: box-shadow var(--hc-transition), background var(--hc-transition);
-  box-shadow: 0 2px 8px rgba(215, 173, 91, 0.3);
+  box-shadow: 0 2px 8px rgba(178, 77, 67, 0.3);
 }
 
 .meta-btn-primary:hover:not(:disabled) {
-  background: #e0bc6f;
+  background: var(--hc-coral-hover);
 }
 
 .meta-btn-primary:focus-visible {

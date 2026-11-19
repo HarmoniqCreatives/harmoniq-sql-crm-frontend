@@ -13,7 +13,7 @@
   padding: 1rem 1.15rem;
   border-radius: var(--hc-radius);
   background:
-    radial-gradient(120% 140% at 100% 0%, rgba(215, 173, 91, 0.14), transparent 55%),
+    radial-gradient(120% 140% at 100% 0%, rgba(255, 111, 97, 0.14), transparent 55%),
     linear-gradient(135deg, var(--hc-navy) 0%, var(--hc-navy-active) 100%);
   color: #fff;
   box-shadow: var(--hc-shadow-sm);
@@ -90,12 +90,12 @@
 }
 
 .integration-status-badge.is-pending {
-  background: rgba(215, 173, 91, 0.22);
-  color: #7a5a18;
+  background: rgba(255, 111, 97, 0.22);
+  color: var(--hc-coral-strong);
 }
 
 .integration-status-badge.is-connected {
-  background: rgba(215, 173, 91, 0.28);
+  background: rgba(255, 111, 97, 0.28);
   color: var(--hc-navy);
 }
 
@@ -169,7 +169,7 @@
 }
 
 .integration-register-form input:focus {
-  outline: 2px solid rgba(215, 173, 91, 0.45);
+  outline: 2px solid rgba(255, 111, 97, 0.45);
   border-color: var(--hc-gold);
 }
 

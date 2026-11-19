@@ -39,7 +39,7 @@ export const metaCopy = {
   useThisProfile: 'Connect with this profile',
 
   facebookTitle: 'Facebook account',
-  facebookHint: 'Connect the Facebook account that manages your business Pages so Harmoniq can receive Lead Ads.',
+  facebookHint: 'Connect the Facebook account that manages your business Pages so Melo can receive Lead Ads.',
   facebookEmptyTitle: 'Facebook is not connected',
   facebookEmptyBody: 'After you save an app profile, connect Facebook. You will sign in with Facebook and approve access.',
   facebookConnected: 'Connected',
@@ -61,7 +61,7 @@ export const metaCopy = {
   pagesTitle: 'Connected Pages',
   pagesHint: 'Each connected Page can sync Lead Ads into your CRM. Initial sync starts automatically when you connect.',
   pagesEmptyTitle: 'No Pages connected yet',
-  pagesEmptyBody: 'Connect Facebook, then choose which Pages should send leads to Harmoniq.',
+  pagesEmptyBody: 'Connect Facebook, then choose which Pages should send leads to Melo.',
   lastSync: 'Last sync',
   neverSynced: 'Not synced yet',
   syncStatus: 'Sync status',
@@ -83,7 +83,7 @@ export const metaCopy = {
   selectedCount: 'selected',
 
   pagesModalTitle: 'Choose Facebook Pages',
-  pagesModalHint: 'Select the Pages that should send Lead Ads into Harmoniq.',
+  pagesModalHint: 'Select the Pages that should send Lead Ads into Melo.',
   pagesModalEmpty: 'All available Pages are already connected.',
   addPages: 'Connect selected Pages',
   selectAllAvailable: 'Select all',

@@ -367,3 +367,18 @@ export async function deleteLead(id) {
   const response = await api.delete(`/leads/${id}`)
   return response.data
 }
+
+export async function bulkAssignLeads(body) {
+  const response = await api.post('/leads/bulk/assign', body)
+  return response.data
+}
+
+export async function bulkTransferLeads(body) {
+  const response = await api.post('/leads/bulk/transfer', body)
+  return response.data
+}
+
+export async function bulkDeleteLeads(body) {
+  const response = await api.post('/leads/bulk/delete', body)
+  return response.data
+}

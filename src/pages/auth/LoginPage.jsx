@@ -76,7 +76,7 @@ export function LoginPage() {
   }
 
   return (
-    <AuthCard title="Sign in" subtitle="Access your Harmoniq Creative CRM workspace.">
+    <AuthCard title="Sign in" subtitle="Access your Melo workspace.">
       <form className="auth-form" onSubmit={onSubmit}>
         {error ? <p className="auth-error">{error}</p> : null}
         <div className="auth-field">

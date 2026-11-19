@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { getGroupIds, visibleNavigation } from '../navigation'
+import { BrandLockup } from './BrandLockup'
 
 /**
  * Harmoniq-styled sidebar with legacy parent/child hierarchy, expand/collapse,
@@ -45,10 +46,12 @@ export function Sidebar({
   return (
     <aside className={`sidebar ${mobileOpen ? 'is-open' : ''}`} aria-label="Primary">
       <div className="brand">
-        <div className="brand-mark" aria-hidden="true">H</div>
-        <div className="brand-copy">
-          <strong>Harmoniq Creative</strong>
-          <span>{user?.company?.name || 'CRM Workspace'}</span>
+        <BrandLockup collapsed={collapsed} />
+        <div
+          className="sidebar-company"
+          title={user?.company?.name || undefined}
+        >
+          {user?.company?.name || 'CRM Workspace'}
         </div>
       </div>
 

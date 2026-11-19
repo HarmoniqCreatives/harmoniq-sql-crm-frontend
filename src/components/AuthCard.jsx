@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
+import { BrandLockup } from './BrandLockup'
 
 /**
- * Shared navy/gold auth layout card for register/login/verify/reset/accept flows.
+ * Shared Melo auth layout card for register/login/verify/reset/accept flows.
  *
  * @param {{ title: string, subtitle?: string, children: import('react').ReactNode, wide?: boolean }} props
  */
@@ -10,11 +11,7 @@ export function AuthCard({ title, subtitle, children, wide }) {
     <div className="auth-shell">
       <div className={wide ? 'auth-card wide' : 'auth-card'}>
         <div className="auth-brand">
-          <div className="brand-mark" aria-hidden="true">H</div>
-          <div>
-            <strong>Harmoniq Creative</strong>
-            <div className="sub" style={{ margin: 0 }}>CRM</div>
-          </div>
+          <BrandLockup />
         </div>
         <h1>{title}</h1>
         {subtitle ? <p className="sub">{subtitle}</p> : null}

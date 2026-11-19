@@ -4,7 +4,7 @@
   place-items: center;
   padding: 1.5rem;
   background:
-    radial-gradient(circle at top right, rgba(215, 173, 91, 0.16), transparent 34%),
+    radial-gradient(circle at top right, rgba(255, 111, 97, 0.14), transparent 34%),
     linear-gradient(180deg, #f7f9fc 0%, var(--hc-bg) 50%, #eef2f8 100%);
 }
 
@@ -23,21 +23,20 @@
 
 .auth-brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.65rem;
-  margin-bottom: 0.95rem;
+  margin: -0.15rem -0.2rem 1rem;
+  padding: 1rem 0.85rem 0.85rem;
+  border-radius: var(--hc-radius-sm);
+  background: linear-gradient(180deg, var(--hc-indigo) 0%, var(--hc-indigo-deep) 100%);
 }
 
-.auth-brand .brand-mark {
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 10px;
-  background: linear-gradient(145deg, var(--hc-gold), #b8893a);
-  color: var(--hc-navy);
-  display: grid;
-  place-items: center;
-  font-weight: 800;
-  font-size: 0.9rem;
+.auth-brand .melo-lockup-img {
+  width: min(100%, 12rem);
+}
+
+.auth-brand .melo-tagline {
+  color: var(--hc-lavender);
 }
 
 .auth-card h1 {
@@ -82,8 +81,8 @@
 
 .auth-field input:focus,
 .auth-field select:focus {
-  outline: 2px solid rgba(215, 173, 91, 0.45);
-  border-color: var(--hc-gold);
+  outline: 2px solid rgba(255, 111, 97, 0.45);
+  border-color: var(--hc-coral);
 }
 
 .auth-error {

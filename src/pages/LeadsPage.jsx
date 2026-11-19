@@ -2,11 +2,16 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   assignLead,
+  bulkAssignLeads,
+  bulkDeleteLeads,
+  bulkTransferLeads,
   createLead,
   deleteLead,
+  exportLeads,
   getCompany,
   getLead,
   listCatalog,
+  listLeadPageTypes,
   listLeads,
   listUsers,
   readApiError,
@@ -26,7 +31,7 @@ import {
   readinessOptions,
   sourceOptions,
 } from './leads/leadCopy'
-import { isEmail, isPastDateValue, normalizeEmail, todayDateValue } from './leads/leadHelpers'
+import { formatCampaignStatus, formatLeadGeneratedStamp, isEmail, isPastDateValue, normalizeEmail, todayDateValue } from './leads/leadHelpers'
 import {
   displayCurrentAgentName,
   buildTransferAssignmentPayload,
@@ -100,6 +105,44 @@ function ActionIcon({ name }) {
  * Action control with a portaled tooltip so `.data-wrap { overflow-x: auto }`
  * cannot clip the label (overflow-x non-visible forces overflow-y to auto).
  */
+function BulkAgentDialog({ title, agents, busy, onClose, onSubmit, requireAgent = false }) {
+  const [agentId, setAgentId] = useState('')
+  const [reason, setReason] = useState('')
+  return (
+    <HarmoniqModal
+      open
+      title={title}
+      onClose={onClose}
+      footer={(
+        <>
+          <button type="button" className="ghost-btn" disabled={busy} onClick={onClose}>{messages.cancel}</button>
+          <button
+            type="button"
+            className="primary-btn"
+            disabled={busy || (requireAgent && !agentId) || !agentId}
+            onClick={() => onSubmit(agentId, reason)}
+          >
+            {busy ? messages.bulkWorking : messages.save}
+          </button>
+        </>
+      )}
+    >
+      <div className="manage-field">
+        <label htmlFor="bulk-agent">{messages.currentAssignedAgent}</label>
+        <select id="bulk-agent" value={agentId} onChange={(event) => setAgentId(event.target.value)}>
+          <option value="">{messages.noneAgent}</option>
+          {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
+        </select>
+      </div>
+      <div className="manage-field">
+        <label htmlFor="bulk-reason">{messages.transferReason || 'Reason'}</label>
+        <textarea id="bulk-reason" rows={3} value={reason} onChange={(event) => setReason(event.target.value)} />
+      </div>
+    </HarmoniqModal>
+  )
+}
+
+
 function LeadAction({ label, className = '', disabled = false, href, target, rel, onClick, children }) {
   const tipId = useId()
   const [tip, setTip] = useState(null)
@@ -281,6 +324,10 @@ export function LeadsPage() {
   const canEdit = hasPermission(viewer, perm.leadsEdit)
   const canAssign = hasPermission(viewer, perm.leadsAssign)
   const canDelete = hasPermission(viewer, perm.leadsDelete)
+  const canExport = hasPermission(viewer, perm.leadsBulk)
+  const canBulkAssign = hasPermission(viewer, perm.leadsBulkAssign)
+  const canBulkTransfer = hasPermission(viewer, perm.leadsBulkTransfer)
+  const canBulkDelete = hasPermission(viewer, perm.leadsBulkDelete)
 
   const [leads, setLeads] = useState([])
   const [total, setTotal] = useState(0)
@@ -289,6 +336,15 @@ export function LeadsPage() {
   const [statusId, setStatusId] = useState('')
   const [agentId, setAgentId] = useState('')
   const [tagId, setTagId] = useState('')
+  const [pageType, setPageType] = useState('')
+  const [pageTypes, setPageTypes] = useState([])
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [selectedIds, setSelectedIds] = useState([])
+  const [exporting, setExporting] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState('')
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false)
+  const [bulkTransferOpen, setBulkTransferOpen] = useState(false)
   const [statuses, setStatuses] = useState([])
   const [tags, setTags] = useState([])
   const [activityTypes, setActivityTypes] = useState([])
@@ -327,6 +383,15 @@ export function LeadsPage() {
     if (tagId) {
       params.tagId = tagId
     }
+    if (pageType) {
+      params.pageType = pageType
+    }
+    if (startDate) {
+      params.startDate = startDate
+    }
+    if (endDate) {
+      params.endDate = endDate
+    }
     return params
   }
 
@@ -336,6 +401,102 @@ export function LeadsPage() {
     setLeads(payload.data.leads || [])
     setTotal(payload.data.total || 0)
     setPageNumber(payload.data.page || nextPage)
+    setSelectedIds([])
+  }
+
+  function toggleSelectAll(checked) {
+    if (!checked) {
+      setSelectedIds([])
+      return
+    }
+    setSelectedIds(leads.map((lead) => lead.id))
+  }
+
+  function toggleSelectOne(leadId, checked) {
+    setSelectedIds((current) => {
+      if (checked) {
+        if (current.includes(leadId)) return current
+        return current.concat(leadId)
+      }
+      return current.filter((id) => id !== leadId)
+    })
+  }
+
+  async function downloadExport() {
+    if (!canExport) return
+    if (startDate && endDate && startDate > endDate) {
+      setError(errors.dateRangeInvalid || 'From date cannot be after To date.')
+      return
+    }
+    setExporting(true)
+    setError('')
+    try {
+      const params = { ...leadParams(1), format: 'xlsx' }
+      delete params.page
+      delete params.limit
+      const response = await exportLeads(params)
+      const blob = response.data
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `leads_export_${startDate || 'all'}_${endDate || 'all'}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      setNotice(messages.exportDone || 'Export downloaded.')
+    } catch (exportError) {
+      setError(readApiError(exportError))
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  async function runBulkAssign(primaryAgentId, reason) {
+    setBulkBusy('assign')
+    setError('')
+    try {
+      const payload = await bulkAssignLeads({ ids: selectedIds, primaryAgentId, reason })
+      setNotice(payload.data.message || messages.bulkAssign)
+      setBulkAssignOpen(false)
+      await loadLeads(pageNumber)
+    } catch (bulkError) {
+      setError(readApiError(bulkError))
+    } finally {
+      setBulkBusy('')
+    }
+  }
+
+  async function runBulkTransfer(primaryAgentId, reason) {
+    setBulkBusy('transfer')
+    setError('')
+    try {
+      const payload = await bulkTransferLeads({ ids: selectedIds, primaryAgentId, reason })
+      setNotice(payload.data.message || messages.bulkTransfer)
+      setBulkTransferOpen(false)
+      await loadLeads(pageNumber)
+    } catch (bulkError) {
+      setError(readApiError(bulkError))
+    } finally {
+      setBulkBusy('')
+    }
+  }
+
+  async function runBulkDelete() {
+    if (!window.confirm(`${messages.bulkDeleteConfirm} (${selectedIds.length})`)) {
+      return
+    }
+    setBulkBusy('delete')
+    setError('')
+    try {
+      const payload = await bulkDeleteLeads({ ids: selectedIds })
+      setNotice(payload.data.message || messages.bulkDelete)
+      await loadLeads(pageNumber)
+    } catch (bulkError) {
+      setError(readApiError(bulkError))
+    } finally {
+      setBulkBusy('')
+    }
   }
 
   useEffect(() => {
@@ -348,16 +509,18 @@ export function LeadsPage() {
       setLoading(true)
       setError('')
       try {
-        const [statusPayload, tagPayload, activityPayload, companyPayload] = await Promise.all([
+        const [statusPayload, tagPayload, activityPayload, companyPayload, pageTypePayload] = await Promise.all([
           listCatalog({ kind: messages.kindStatus }),
           listCatalog({ kind: messages.kindTag }),
           listCatalog({ kind: messages.kindActivity }),
           getCompany(),
+          listLeadPageTypes().catch(() => ({ data: { pageTypes: [] } })),
         ])
         if (active) {
           setStatuses(activeCatalogItems(statusPayload.data.items || []))
           setTags(activeCatalogItems(tagPayload.data.items || []))
           setActivityTypes(activeCatalogItems(activityPayload.data.items || []))
+          setPageTypes(pageTypePayload.data.pageTypes || [])
           if (companyPayload.data.company && companyPayload.data.company.baseCurrency) {
             setCompanyCurrency(companyPayload.data.company.baseCurrency)
           }
@@ -399,6 +562,14 @@ export function LeadsPage() {
   async function applyFilters(event) {
     event.preventDefault()
     setError('')
+    if ((startDate && !endDate) || (!startDate && endDate)) {
+      setError(errors.dateRangeInvalid || 'Enter both From and To dates.')
+      return
+    }
+    if (startDate && endDate && startDate > endDate) {
+      setError(errors.dateRangeInvalid || 'From date cannot be after To date.')
+      return
+    }
     try {
       await loadLeads(1)
     } catch (filterError) {
@@ -499,11 +670,21 @@ export function LeadsPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th><input type="checkbox" disabled aria-label={messages.selectRows} /></th>
+                <th>
+                  <input
+                    type="checkbox"
+                    aria-label={messages.selectRows}
+                    checked={leads.length > 0 && selectedIds.length === leads.length}
+                    disabled={leads.length === 0 || !(canBulkAssign || canBulkTransfer || canBulkDelete)}
+                    onChange={(event) => toggleSelectAll(event.target.checked)}
+                  />
+                </th>
                 <th>{messages.leadContact}</th>
                 <th>{messages.propertyInterest}</th>
                 <th>{messages.leadCreatedAt}</th>
                 <th>{messages.leadCampaign}</th>
+                <th>{messages.leadCampaignStatus}</th>
+                <th>{messages.facebookPage}</th>
                 <th>{messages.originallyAssignedTo}</th>
                 <th>{messages.currentlyAssignedTo}</th>
                 <th>{messages.leadStatus}</th>
@@ -538,7 +719,15 @@ export function LeadsPage() {
                 const areaLine = [lead.builtUpArea, labelFor(readinessOptions, lead.readiness)].filter((part) => part).join(' · ')
                 return (
                   <tr key={lead.id}>
-                    <td><input type="checkbox" disabled aria-label={lead.name} /></td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        aria-label={lead.name}
+                        checked={selectedIds.includes(lead.id)}
+                        disabled={!(canBulkAssign || canBulkTransfer || canBulkDelete)}
+                        onChange={(event) => toggleSelectOne(lead.id, event.target.checked)}
+                      />
+                    </td>
                     <td className="lead-contact">
                       <strong>{lead.name}</strong>
                       <div className="lead-sub">{lead.phone}</div>
@@ -550,8 +739,15 @@ export function LeadsPage() {
                       <div className="lead-sub">{propertyLine}</div>
                       <div className="lead-sub">{areaLine}</div>
                     </td>
-                    <td>{formatStamp(lead.createdAt)}</td>
+                    <td>{formatLeadGeneratedStamp(lead, formatStamp)}</td>
                     <td>{campaignName}</td>
+                    <td title={lead.campaignStatus || ''}>
+                      {formatCampaignStatus(lead.campaignStatus, {
+                        messages,
+                        isMeta: Boolean(lead.metaCreatedAt) || lead.source === 'facebook' || lead.source === 'instagram',
+                      })}
+                    </td>
+                    <td>{lead.facebookPageName ? lead.facebookPageName : messages.pageNotAvailable}</td>
                     <td>{originalName}</td>
                     <td>
                       <div>{primaryName}</div>
@@ -661,7 +857,14 @@ export function LeadsPage() {
         <h1 className="leads-page-title">{messages.allLeads}</h1>
         <div className="leads-page-actions">
           <button type="button" className="ghost-btn" disabled>{messages.importCsv}</button>
-          <button type="button" className="ghost-btn" disabled title="Phase 3 — export not implemented">{messages.exportCsv}</button>
+          <button
+            type="button"
+            className="ghost-btn"
+            disabled={!canExport || exporting}
+            onClick={() => downloadExport()}
+          >
+            {exporting ? messages.exporting : messages.exportCsv}
+          </button>
           {canCreate ? <button type="button" className="primary-btn" onClick={() => setCreateOpen(true)}>{messages.addLead}</button> : null}
         </div>
       </div>
@@ -681,11 +884,48 @@ export function LeadsPage() {
             <option value="">{messages.allTags}</option>
             {tags.map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
           </select>
+          <select value={pageType} onChange={(event) => setPageType(event.target.value)} aria-label={messages.facebookPage}>
+            <option value="">{messages.allFacebookPages}</option>
+            {pageTypes.map((name) => (
+              <option key={name} value={name}>
+                {name === 'Unknown_Page_Type' ? messages.pageNotAvailable : name}
+              </option>
+            ))}
+          </select>
+          <label className="lead-date-filter">
+            <span className="sr-only">{messages.dateFrom}</span>
+            <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} aria-label={messages.dateFrom} />
+          </label>
+          <label className="lead-date-filter">
+            <span className="sr-only">{messages.dateTo}</span>
+            <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} aria-label={messages.dateTo} />
+          </label>
           <button type="submit" className="ghost-btn">{messages.searchAction}</button>
         </form>
         <div className="leads-toolbar-row">
           <strong>{messages.allLeads} <span className="lead-count">{total}</span></strong>
-          <span className="lead-muted">{messages.selectRows}</span>
+          <span className="lead-muted">
+            {selectedIds.length > 0
+              ? `${selectedIds.length} ${messages.selectedCount}`
+              : messages.selectRows}
+          </span>
+          <div className="leads-bulk-actions">
+            {canBulkAssign ? (
+              <button type="button" className="ghost-btn" disabled={!selectedIds.length || Boolean(bulkBusy)} onClick={() => setBulkAssignOpen(true)}>
+                {bulkBusy === 'assign' ? messages.bulkWorking : messages.bulkAssign}
+              </button>
+            ) : null}
+            {canBulkTransfer ? (
+              <button type="button" className="ghost-btn" disabled={!selectedIds.length || Boolean(bulkBusy)} onClick={() => setBulkTransferOpen(true)}>
+                {bulkBusy === 'transfer' ? messages.bulkWorking : messages.bulkTransfer}
+              </button>
+            ) : null}
+            {canBulkDelete ? (
+              <button type="button" className="ghost-btn is-red" disabled={!selectedIds.length || Boolean(bulkBusy)} onClick={() => runBulkDelete()}>
+                {bulkBusy === 'delete' ? messages.bulkWorking : messages.bulkDelete}
+              </button>
+            ) : null}
+          </div>
         </div>
         {body}
         <div className="pager">
@@ -696,6 +936,25 @@ export function LeadsPage() {
         </div>
       </div>
 
+      {bulkAssignOpen ? (
+        <BulkAgentDialog
+          title={messages.bulkAssignTitle}
+          agents={agents}
+          busy={bulkBusy === 'assign'}
+          onClose={() => setBulkAssignOpen(false)}
+          onSubmit={(agentId, reason) => runBulkAssign(agentId, reason)}
+        />
+      ) : null}
+      {bulkTransferOpen ? (
+        <BulkAgentDialog
+          title={messages.bulkTransferTitle}
+          agents={agents}
+          busy={bulkBusy === 'transfer'}
+          requireAgent
+          onClose={() => setBulkTransferOpen(false)}
+          onSubmit={(agentId, reason) => runBulkTransfer(agentId, reason)}
+        />
+      ) : null}
       <CreateLeadDialog
         open={createOpen || Boolean(editing)}
         record={editing}
@@ -820,7 +1079,6 @@ function CreateLeadDialog({ open, record, statuses, tags, agents, companyCurrenc
   const [source, setSource] = useState(messages.sourceManualValue)
   const [statusId, setStatusId] = useState('')
   const [primaryAgentId, setPrimaryAgentId] = useState('')
-  const [secondaryAgentId, setSecondaryAgentId] = useState('')
   const [tagIds, setTagIds] = useState([])
   const [tagsOpen, setTagsOpen] = useState(false)
   const tagMenuRef = useRef(null)
@@ -971,9 +1229,6 @@ function CreateLeadDialog({ open, record, statuses, tags, agents, companyCurrenc
       if (primaryAgentId) {
         body.primaryAgentId = primaryAgentId
       }
-      if (secondaryAgentId) {
-        body.secondaryAgentId = secondaryAgentId
-      }
     }
     if (followUpChanged) {
       body.nextFollowUpAt = nextFollowUpAt
@@ -1063,7 +1318,7 @@ function CreateLeadDialog({ open, record, statuses, tags, agents, companyCurrenc
           </div>
           {record ? null : (
             <div className="manage-field">
-              <label htmlFor="lead-primary">{messages.primaryAgent}</label>
+              <label htmlFor="lead-primary">{messages.currentAssignedAgent}</label>
               <select id="lead-primary" value={primaryAgentId} onChange={(event) => setPrimaryAgentId(event.target.value)}>
                 <option value="">{messages.noneAgent}</option>
                 {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
@@ -1072,15 +1327,6 @@ function CreateLeadDialog({ open, record, statuses, tags, agents, companyCurrenc
           )}
         </div>
         <div className="role-form-row">
-          {record ? null : (
-            <div className="manage-field">
-              <label htmlFor="lead-secondary">{messages.secondaryAgent}</label>
-              <select id="lead-secondary" value={secondaryAgentId} onChange={(event) => setSecondaryAgentId(event.target.value)}>
-                <option value="">{messages.noneAgent}</option>
-                {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
-              </select>
-            </div>
-          )}
           <div className="manage-field">
             <label id="lead-tags-label" htmlFor="lead-tags">{messages.customerTags}</label>
             <div className="tag-dropdown" ref={tagMenuRef}>
