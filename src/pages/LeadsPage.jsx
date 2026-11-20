@@ -717,6 +717,15 @@ export function LeadsPage() {
                 }
                 const propertyLine = [lead.location, labelFor(purposeOptions, lead.purpose)].filter((part) => part).join(' · ')
                 const areaLine = [lead.builtUpArea, labelFor(readinessOptions, lead.readiness)].filter((part) => part).join(' · ')
+                const campaignIdLine = lead.campaignId
+                  ? `${messages.leadCampaignId}: ${lead.campaignId}`
+                  : ''
+                const adLine = lead.adName || lead.adId
+                  ? `${messages.leadAd}: ${lead.adName || '—'} ${lead.adId ? `(${lead.adId})` : ''}`.trim()
+                  : ''
+                const formLine = lead.formName || lead.formId
+                  ? `${messages.leadForm}: ${lead.formName || '—'} ${lead.formId ? `(${lead.formId})` : ''}`.trim()
+                  : ''
                 return (
                   <tr key={lead.id}>
                     <td>
@@ -740,7 +749,12 @@ export function LeadsPage() {
                       <div className="lead-sub">{areaLine}</div>
                     </td>
                     <td>{formatLeadGeneratedStamp(lead, formatStamp)}</td>
-                    <td>{campaignName}</td>
+                    <td>
+                      <div>{campaignName}</div>
+                      {campaignIdLine ? <div className="lead-sub">{campaignIdLine}</div> : null}
+                      {adLine ? <div className="lead-sub">{adLine}</div> : null}
+                      {formLine ? <div className="lead-sub">{formLine}</div> : null}
+                    </td>
                     <td title={lead.campaignStatus || ''}>
                       {formatCampaignStatus(lead.campaignStatus, {
                         messages,

@@ -115,6 +115,8 @@ export function MetaIntegrationsPage() {
   const [assigneeAgents, setAssigneeAgents] = useState([])
   const [assigneeId, setAssigneeId] = useState('')
   const [savedAssigneeId, setSavedAssigneeId] = useState('')
+  const [autoSyncConfig, setAutoSyncConfig] = useState(null)
+  const [autoSyncError, setAutoSyncError] = useState('')
 
   const syncByPage = useMemo(
     () => new Map(activeSyncs.map((row) => [row.pageId, row])),
@@ -130,12 +132,13 @@ export function MetaIntegrationsPage() {
     setLoading(true)
     setError('')
     try {
-      const [profilesRes, connectionsRes, pagesRes, countsRes, assigneeRes] = await Promise.all([
+      const [profilesRes, connectionsRes, pagesRes, countsRes, assigneeRes, autoSyncRes] = await Promise.all([
         api.get('/meta/profiles'),
         api.get('/meta/connections'),
         api.get('/meta/pages', { params: { limit: LIST_LIMIT, page: pageValue } }),
         api.get('/meta/lead-counts'),
         api.get('/meta/default-assignee'),
+        api.get('/meta/auto-sync-config').catch(() => null),
       ])
       const nextPages = pagesRes.data?.data?.pages || []
       setProfiles(profilesRes.data?.data?.profiles || [])
@@ -155,6 +158,13 @@ export function MetaIntegrationsPage() {
       setAssigneeAgents(agents)
       setAssigneeId(nextAssigneeId)
       setSavedAssigneeId(nextAssigneeId)
+      if (autoSyncRes?.data?.data) {
+        setAutoSyncConfig(autoSyncRes.data.data)
+        setAutoSyncError('')
+      } else {
+        setAutoSyncConfig(null)
+        setAutoSyncError(copy.autoSyncLoadError)
+      }
 
       for (const page of nextPages) {
         const job = page.latestSyncJob
@@ -1137,6 +1147,30 @@ export function MetaIntegrationsPage() {
           ) : null}
 
           <p className="meta-panel-hint" style={{ marginTop: '1rem' }}>{copy.manualSyncHint}</p>
+          <div className="meta-panel-hint" style={{ marginTop: '0.75rem' }} aria-live="polite">
+            <strong>{copy.autoSyncTitle}</strong>
+            {': '}
+            {autoSyncError ? autoSyncError : null}
+            {!autoSyncError && autoSyncConfig ? (
+              <>
+                {autoSyncConfig.enabled ? copy.autoSyncOn : copy.autoSyncOff}
+                {autoSyncConfig.enabled ? (
+                  <>
+                    {' · '}
+                    {copy.autoSyncInterval}
+                    {': '}
+                    {autoSyncConfig.intervalMinutes}
+                    {' '}
+                    {copy.autoSyncMinutes}
+                  </>
+                ) : null}
+                <div>{copy.autoSyncIndependent}</div>
+                {!autoSyncConfig.workerAutorunEnabled ? (
+                  <div>{copy.autoSyncWorkerOff}</div>
+                ) : null}
+              </>
+            ) : null}
+          </div>
           <div className="meta-bulk-actions" style={{ marginTop: '0.75rem' }}>
             <button
               type="button"
