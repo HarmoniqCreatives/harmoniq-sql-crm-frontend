@@ -20,6 +20,13 @@ import {
 import { useAuth } from '../auth/AuthContext'
 import { hasPermission, perm } from '../auth/permissions'
 import { Toast } from '../components/Toast'
+import { PaginationBar } from '../components/PaginationBar'
+import {
+  DATE_PRESETS,
+  formatDisplayDate,
+  parseFlexibleDate,
+  rangeForPreset,
+} from '../utils/dateRangePresets'
 import {
   actionShapes,
   errors,
@@ -37,8 +44,6 @@ import {
   buildTransferAssignmentPayload,
   eligibleTransferAgents,
 } from './leads/transferFormHelpers'
-
-const pageSize = 20
 
 /**
  * Lead dialog shell. Uses dedicated `leads-modal-*` classes so admin.css
@@ -203,19 +208,6 @@ function LeadAction({ label, className = '', disabled = false, href, target, rel
   )
 }
 
-// Exists so the directory pager can show the current slice, such as 1–20 of 24.
-function pageRange(page, limit, total) {
-  if (total === 0) {
-    return `0 ${messages.pageOf} 0`
-  }
-  const start = (page - 1) * limit + 1
-  let end = page * limit
-  if (end > total) {
-    end = total
-  }
-  return `${start}–${end} ${messages.pageOf} ${total}`
-}
-
 // Exists so a stored choice can be shown with its readable label.
 function labelFor(options, value) {
   const match = options.find((option) => option.value === value)
@@ -332,14 +324,18 @@ export function LeadsPage() {
   const [leads, setLeads] = useState([])
   const [total, setTotal] = useState(0)
   const [pageNumber, setPageNumber] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [search, setSearch] = useState('')
   const [statusId, setStatusId] = useState('')
   const [agentId, setAgentId] = useState('')
   const [tagId, setTagId] = useState('')
   const [pageType, setPageType] = useState('')
   const [pageTypes, setPageTypes] = useState([])
+  const [datePreset, setDatePreset] = useState(DATE_PRESETS.all)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [startDateDisplay, setStartDateDisplay] = useState('')
+  const [endDateDisplay, setEndDateDisplay] = useState('')
   const [selectedIds, setSelectedIds] = useState([])
   const [exporting, setExporting] = useState(false)
   const [bulkBusy, setBulkBusy] = useState('')
@@ -350,6 +346,7 @@ export function LeadsPage() {
   const [activityTypes, setActivityTypes] = useState([])
   const [agents, setAgents] = useState([])
   const [companyCurrency, setCompanyCurrency] = useState('')
+  const [companyTimezone, setCompanyTimezone] = useState('UTC')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -365,11 +362,23 @@ export function LeadsPage() {
   const tagMenuRef = useRef(null)
   useCloseOnOutside(tagMenuId !== '', tagMenuRef, () => setTagMenuId(''))
 
+  function resolveFilterDates() {
+    const presetRange = rangeForPreset(datePreset, companyTimezone)
+    if (presetRange) {
+      return presetRange
+    }
+    if (datePreset === DATE_PRESETS.custom) {
+      return { startDate, endDate }
+    }
+    return { startDate: '', endDate: '' }
+  }
+
   // Exists so filters and paging reuse one lead request.
-  function leadParams(nextPage) {
+  function leadParams(nextPage, size = pageSize) {
+    const dates = resolveFilterDates()
     const params = {
       page: nextPage,
-      limit: pageSize,
+      limit: size,
     }
     if (search.trim()) {
       params.search = search.trim()
@@ -386,21 +395,24 @@ export function LeadsPage() {
     if (pageType) {
       params.pageType = pageType
     }
-    if (startDate) {
-      params.startDate = startDate
+    if (dates.startDate) {
+      params.startDate = dates.startDate
     }
-    if (endDate) {
-      params.endDate = endDate
+    if (dates.endDate) {
+      params.endDate = dates.endDate
     }
     return params
   }
 
   // Exists so the table reads one page from the server.
-  async function loadLeads(nextPage) {
-    const payload = await listLeads(leadParams(nextPage))
+  async function loadLeads(nextPage, size = pageSize) {
+    const payload = await listLeads(leadParams(nextPage, size))
     setLeads(payload.data.leads || [])
     setTotal(payload.data.total || 0)
     setPageNumber(payload.data.page || nextPage)
+    if (payload.data.limit) {
+      setPageSize(payload.data.limit)
+    }
     setSelectedIds([])
   }
 
@@ -424,12 +436,12 @@ export function LeadsPage() {
 
   async function downloadExport() {
     if (!canExport) return
-    if (startDate && endDate && startDate > endDate) {
-      setError(errors.dateRangeInvalid || 'From date cannot be after To date.')
+    const dates = resolveFilterDates()
+    setError('')
+    if (!validateCustomDateRange(dates)) {
       return
     }
     setExporting(true)
-    setError('')
     try {
       const params = { ...leadParams(1), format: 'xlsx' }
       delete params.page
@@ -439,7 +451,7 @@ export function LeadsPage() {
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `leads_export_${startDate || 'all'}_${endDate || 'all'}.xlsx`
+      link.download = `leads_export_${dates.startDate || 'all'}_${dates.endDate || 'all'}.xlsx`
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -524,6 +536,9 @@ export function LeadsPage() {
           if (companyPayload.data.company && companyPayload.data.company.baseCurrency) {
             setCompanyCurrency(companyPayload.data.company.baseCurrency)
           }
+          if (companyPayload.data.company && companyPayload.data.company.timezone) {
+            setCompanyTimezone(companyPayload.data.company.timezone)
+          }
         }
         try {
           const userPayload = await listUsers({ limit: 50 })
@@ -558,22 +573,123 @@ export function LeadsPage() {
     }
   }, [canView])
 
+  function applyDatePreset(nextPreset) {
+    setDatePreset(nextPreset)
+    if (nextPreset === DATE_PRESETS.custom) {
+      return
+    }
+    const range = rangeForPreset(nextPreset, companyTimezone)
+    if (range) {
+      setStartDate(range.startDate)
+      setEndDate(range.endDate)
+      setStartDateDisplay(formatDisplayDate(range.startDate))
+      setEndDateDisplay(formatDisplayDate(range.endDate))
+      return
+    }
+    setStartDate('')
+    setEndDate('')
+    setStartDateDisplay('')
+    setEndDateDisplay('')
+  }
+
+  function setCustomFromPicker(which, ymd) {
+    if (!ymd) {
+      if (which === 'start') {
+        setStartDate('')
+        setStartDateDisplay('')
+        return
+      }
+      setEndDate('')
+      setEndDateDisplay('')
+      return
+    }
+    if (which === 'start') {
+      setStartDate(ymd)
+      setStartDateDisplay(formatDisplayDate(ymd))
+      return
+    }
+    setEndDate(ymd)
+    setEndDateDisplay(formatDisplayDate(ymd))
+  }
+
+  function commitCustomText(which, raw) {
+    const trimmed = String(raw || '').trim()
+    if (!trimmed) {
+      setCustomFromPicker(which, '')
+      return
+    }
+    const parsed = parseFlexibleDate(trimmed)
+    if (!parsed) {
+      setError(errors.dateRangeInvalid)
+      if (which === 'start') {
+        setStartDateDisplay(formatDisplayDate(startDate))
+      } else {
+        setEndDateDisplay(formatDisplayDate(endDate))
+      }
+      return
+    }
+    setCustomFromPicker(which, parsed)
+  }
+
+  function validateCustomDateRange(dates) {
+    if (datePreset !== DATE_PRESETS.custom) {
+      return true
+    }
+    if ((dates.startDate && !dates.endDate) || (!dates.startDate && dates.endDate)) {
+      setError(errors.dateRangeInvalid || 'Enter both From and To dates.')
+      return false
+    }
+    if (dates.startDate && dates.endDate && dates.startDate > dates.endDate) {
+      setError(errors.dateRangeInvalid || 'From date cannot be after To date.')
+      return false
+    }
+    return true
+  }
+
   // Exists so a filter search starts again at the first page.
   async function applyFilters(event) {
     event.preventDefault()
     setError('')
-    if ((startDate && !endDate) || (!startDate && endDate)) {
-      setError(errors.dateRangeInvalid || 'Enter both From and To dates.')
-      return
-    }
-    if (startDate && endDate && startDate > endDate) {
-      setError(errors.dateRangeInvalid || 'From date cannot be after To date.')
+    const dates = resolveFilterDates()
+    if (!validateCustomDateRange(dates)) {
       return
     }
     try {
       await loadLeads(1)
     } catch (filterError) {
       setError(readApiError(filterError))
+    }
+  }
+
+  async function resetFilters() {
+    setError('')
+    setSearch('')
+    setStatusId('')
+    setAgentId('')
+    setTagId('')
+    setPageType('')
+    setDatePreset(DATE_PRESETS.all)
+    setStartDate('')
+    setEndDate('')
+    setStartDateDisplay('')
+    setEndDateDisplay('')
+    try {
+      const payload = await listLeads({ page: 1, limit: pageSize })
+      setLeads(payload.data.leads || [])
+      setTotal(payload.data.total || 0)
+      setPageNumber(payload.data.page || 1)
+      setSelectedIds([])
+    } catch (resetError) {
+      setError(readApiError(resetError))
+    }
+  }
+
+  async function changePageSize(nextSize) {
+    setPageSize(nextSize)
+    try {
+      await loadLeads(1, nextSize)
+    } catch (pageError) {
+      setError(readApiError(pageError))
     }
   }
 
@@ -640,9 +756,6 @@ export function LeadsPage() {
       setError(readApiError(deleteError))
     }
   }
-
-  const hasPrevious = pageNumber > 1
-  const hasNext = pageNumber * pageSize < total
 
   if (!viewer) {
     return <div className="admin-panel leads-page-shell"><p className="sub">{messages.signInRequired}</p></div>
@@ -906,15 +1019,63 @@ export function LeadsPage() {
               </option>
             ))}
           </select>
-          <label className="lead-date-filter">
-            <span className="sr-only">{messages.dateFrom}</span>
-            <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} aria-label={messages.dateFrom} />
-          </label>
-          <label className="lead-date-filter">
-            <span className="sr-only">{messages.dateTo}</span>
-            <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} aria-label={messages.dateTo} />
-          </label>
+          <select
+            className="lead-date-preset"
+            value={datePreset}
+            onChange={(event) => applyDatePreset(event.target.value)}
+            aria-label={messages.datePreset}
+          >
+            <option value={DATE_PRESETS.all}>{messages.datePresetAll}</option>
+            <option value={DATE_PRESETS.today}>{messages.datePresetToday}</option>
+            <option value={DATE_PRESETS.yesterday}>{messages.datePresetYesterday}</option>
+            <option value={DATE_PRESETS.last30}>{messages.datePresetLast30}</option>
+            <option value={DATE_PRESETS.thisMonth}>{messages.datePresetThisMonth}</option>
+            <option value={DATE_PRESETS.custom}>{messages.datePresetCustom}</option>
+          </select>
+          {datePreset === DATE_PRESETS.custom ? (
+            <div className="lead-custom-dates">
+              <label className="lead-custom-date">
+                <span>{messages.dateFrom}</span>
+                <div className="lead-custom-date-row">
+                  <input
+                    type="text"
+                    placeholder={messages.dateDisplayHint}
+                    value={startDateDisplay}
+                    onChange={(event) => setStartDateDisplay(event.target.value)}
+                    onBlur={(event) => commitCustomText('start', event.target.value)}
+                    aria-label={messages.dateFrom}
+                  />
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(event) => setCustomFromPicker('start', event.target.value)}
+                    aria-label={`${messages.dateFrom} picker`}
+                  />
+                </div>
+              </label>
+              <label className="lead-custom-date">
+                <span>{messages.dateTo}</span>
+                <div className="lead-custom-date-row">
+                  <input
+                    type="text"
+                    placeholder={messages.dateDisplayHint}
+                    value={endDateDisplay}
+                    onChange={(event) => setEndDateDisplay(event.target.value)}
+                    onBlur={(event) => commitCustomText('end', event.target.value)}
+                    aria-label={messages.dateTo}
+                  />
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(event) => setCustomFromPicker('end', event.target.value)}
+                    aria-label={`${messages.dateTo} picker`}
+                  />
+                </div>
+              </label>
+            </div>
+          ) : null}
           <button type="submit" className="ghost-btn">{messages.searchAction}</button>
+          <button type="button" className="ghost-btn" onClick={() => { resetFilters().catch(() => {}) }}>{messages.resetFilters}</button>
         </form>
         <div className="leads-toolbar-row">
           <strong>{messages.allLeads} <span className="lead-count">{total}</span></strong>
@@ -942,12 +1103,14 @@ export function LeadsPage() {
           </div>
         </div>
         {body}
-        <div className="pager">
-          <button type="button" className="ghost-btn" disabled={!hasPrevious} onClick={() => loadLeads(pageNumber - 1).catch((pageError) => setError(readApiError(pageError)))}>{messages.previousPage}</button>
-          <span className="sub">{pageNumber}</span>
-          <button type="button" className="ghost-btn" disabled={!hasNext} onClick={() => loadLeads(pageNumber + 1).catch((pageError) => setError(readApiError(pageError)))}>{messages.nextPage}</button>
-          <span className="sub">{pageRange(pageNumber, pageSize, total)}</span>
-        </div>
+        <PaginationBar
+          page={pageNumber}
+          pageSize={pageSize}
+          total={total}
+          disabled={loading}
+          onPageChange={(next) => loadLeads(next).catch((pageError) => setError(readApiError(pageError)))}
+          onPageSizeChange={(size) => changePageSize(size)}
+        />
       </div>
 
       {bulkAssignOpen ? (

@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../auth/AuthContext'
 import { hasPermission, perm } from '../auth/permissions'
 import { Toast } from '../components/Toast'
+import { COMPANY_TIMEZONES, currencyLabel } from '../utils/companyOptions'
 
 const KIND = {
   status: 'STATUS',
@@ -25,11 +26,7 @@ const TONE_CHOICES = [
   { value: 'blue', label: 'Blue' },
 ]
 
-const TIMEZONES = [
-  { value: 'Asia/Dubai', label: 'Asia/Dubai' },
-  { value: 'Asia/Kolkata', label: 'Asia/Kolkata' },
-  { value: 'Asia/Karachi', label: 'Asia/Karachi' },
-]
+const TIMEZONES = COMPANY_TIMEZONES
 
 /**
  * Company Settings: catalog chips (status / tag / activity) + timezone / base currency.
@@ -428,13 +425,4 @@ function CatalogDialog({ editor, onClose, onSaved, onError }) {
       </div>
     </div>
   )
-}
-
-function currencyLabel(code) {
-  if (code === 'AED') return 'AED — UAE Dirham'
-  if (code === 'INR') return 'INR — Indian Rupee'
-  if (code === 'PKR') return 'PKR — Pakistani Rupee'
-  if (code === 'USD') return 'USD — US Dollar'
-  if (code === 'EUR') return 'EUR — Euro'
-  return code
 }

@@ -286,6 +286,63 @@
   color: var(--hc-text-muted);
 }
 
+.pagination-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--hc-space-2);
+  margin-top: var(--hc-space-3);
+  font-size: var(--hc-fs-helper);
+  color: var(--hc-text-muted);
+}
+
+.pagination-bar-meta,
+.pagination-bar-controls,
+.pagination-bar-jump,
+.pagination-bar-jump label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pagination-bar-size select,
+.pagination-bar-jump input {
+  min-height: var(--hc-control-height);
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--hc-border);
+  border-radius: var(--hc-radius-control);
+  background: #fff;
+  color: var(--hc-navy);
+}
+
+.pagination-bar-jump input {
+  width: 4.2rem;
+}
+
+.pagination-bar-page.is-active {
+  border-color: var(--hc-gold);
+  color: var(--hc-navy);
+  font-weight: 700;
+}
+
+.pagination-bar-gap {
+  padding: 0 0.15rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .settings-grid {
   display: grid;
   gap: var(--hc-space-3);

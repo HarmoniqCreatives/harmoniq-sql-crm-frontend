@@ -646,6 +646,34 @@
   border-color: rgba(20, 35, 59, 0.18);
 }
 
+.meta-icon-btn.is-active {
+  border-color: var(--meta-gold);
+  background: rgba(215, 173, 91, 0.16);
+  color: var(--meta-navy);
+}
+
+.meta-asset-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.meta-asset-table {
+  table-layout: fixed;
+}
+
+.meta-asset-table th,
+.meta-asset-table td {
+  vertical-align: top;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta-asset-table td.meta-asset-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+}
+
 .meta-icon-btn:focus-visible {
   outline: 2px solid var(--meta-gold);
   outline-offset: 2px;
