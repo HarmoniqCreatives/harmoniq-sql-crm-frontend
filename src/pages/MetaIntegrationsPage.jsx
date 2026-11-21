@@ -4,6 +4,7 @@ import { api, readApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { hasPermission, perm } from '../auth/permissions'
 import { PasswordInput } from '../components/PasswordInput'
+import { PaginationBar } from '../components/PaginationBar'
 import {
   isMetaPageSyncing,
   startMetaPageSync,
@@ -13,6 +14,7 @@ import { MetaActionIcon } from './meta/MetaActionIcon'
 import { metaCopy as copy } from './meta/metaCopy'
 
 const LIST_LIMIT = 10
+const ASSET_PAGE_SIZE_DEFAULT = 10
 
 function formatSyncTime(value) {
   if (!value) return copy.neverSynced
@@ -80,6 +82,7 @@ export function MetaIntegrationsPage() {
   const [pages, setPages] = useState([])
   const [pagesTotal, setPagesTotal] = useState(0)
   const [pageNumber, setPageNumber] = useState(1)
+  const [pageSize, setPageSize] = useState(LIST_LIMIT)
   const [leadCounts, setLeadCounts] = useState({ imported: 0, skipped: 0, pages: {} })
   const [loading, setLoading] = useState(true)
   const [busyKey, setBusyKey] = useState('')
@@ -105,6 +108,9 @@ export function MetaIntegrationsPage() {
   const [confirmDisconnectAccount, setConfirmDisconnectAccount] = useState(null)
   const [confirmDisconnectPage, setConfirmDisconnectPage] = useState(null)
   const [assetPanel, setAssetPanel] = useState(null)
+  const [assetPage, setAssetPage] = useState(1)
+  const [assetPageSize, setAssetPageSize] = useState(ASSET_PAGE_SIZE_DEFAULT)
+  const assetPanelRef = useRef(null)
   const [assetLoading, setAssetLoading] = useState(false)
   const [assetError, setAssetError] = useState('')
   const [assetPayload, setAssetPayload] = useState(null)
@@ -123,19 +129,20 @@ export function MetaIntegrationsPage() {
     [activeSyncs],
   )
 
-  const load = useCallback(async (nextPageNumber) => {
+  const load = useCallback(async (nextPageNumber, nextPageSize) => {
     if (!canView) {
       setLoading(false)
       return
     }
     const pageValue = nextPageNumber || pageNumber
+    const limitValue = nextPageSize || pageSize
     setLoading(true)
     setError('')
     try {
       const [profilesRes, connectionsRes, pagesRes, countsRes, assigneeRes, autoSyncRes] = await Promise.all([
         api.get('/meta/profiles'),
         api.get('/meta/connections'),
-        api.get('/meta/pages', { params: { limit: LIST_LIMIT, page: pageValue } }),
+        api.get('/meta/pages', { params: { limit: limitValue, page: pageValue } }),
         api.get('/meta/lead-counts'),
         api.get('/meta/default-assignee'),
         api.get('/meta/auto-sync-config').catch(() => null),
@@ -146,6 +153,9 @@ export function MetaIntegrationsPage() {
       setPages(nextPages)
       setPagesTotal(pagesRes.data?.data?.pagination?.total || nextPages.length)
       setPageNumber(pagesRes.data?.data?.pagination?.page || pageValue)
+      if (pagesRes.data?.data?.pagination?.limit) {
+        setPageSize(pagesRes.data.data.pagination.limit)
+      }
       const counts = countsRes.data?.data || { imported: 0, skipped: 0, pages: {} }
       setLeadCounts({
         imported: counts.imported || 0,
@@ -186,7 +196,7 @@ export function MetaIntegrationsPage() {
     } finally {
       setLoading(false)
     }
-  }, [canView, pageNumber])
+  }, [canView, pageNumber, pageSize])
 
   useEffect(() => {
     const oauthNotice = readOAuthNotice(searchParams)
@@ -267,6 +277,25 @@ export function MetaIntegrationsPage() {
 
   function openAssetPanel(page, kind) {
     setAssetPanel({ page, kind })
+    setAssetPage(1)
+    window.setTimeout(() => {
+      if (assetPanelRef.current && typeof assetPanelRef.current.scrollIntoView === 'function') {
+        assetPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }, 50)
+  }
+
+  function assetRowsForKind(kind, payload) {
+    if (!payload) return []
+    if (kind === 'forms') return payload.forms || []
+    if (kind === 'campaigns') return payload.campaigns || []
+    if (kind === 'ads') return payload.ads || []
+    return []
+  }
+
+  function pagedAssetRows(rows) {
+    const start = (assetPage - 1) * assetPageSize
+    return rows.slice(start, start + assetPageSize)
   }
 
   function openCreateProfile() {
@@ -581,8 +610,6 @@ export function MetaIntegrationsPage() {
   }
 
   const allSelected = pages.length > 0 && pages.every((row) => selectedPageIds.includes(row.id))
-  const pageHasPrevious = pageNumber > 1
-  const pageHasNext = pageNumber * LIST_LIMIT < pagesTotal
   const expiredConnections = connections.filter((row) => row.status === 'expired')
   const connectedAccounts = connections.filter((row) => row.status === 'connected').length
   const connectedPagesCount = pages.filter((row) => row.status === 'connected').length
@@ -941,7 +968,7 @@ export function MetaIntegrationsPage() {
               {' '}
               {copy.pageRangeLabel}
               {' '}
-              {pageRange(pageNumber, LIST_LIMIT, pagesTotal)}
+              {pageRange(pageNumber, pageSize, pagesTotal)}
             </p>
           </div>
         </div>
@@ -1099,9 +1126,10 @@ export function MetaIntegrationsPage() {
                       </button>
                       <button
                         type="button"
-                        className="meta-icon-btn"
+                        className={`meta-icon-btn${assetPanel?.page?.id === page.id && assetPanel?.kind === 'ads' ? ' is-active' : ''}`}
                         title={copy.ads}
                         aria-label={copy.ads}
+                        aria-pressed={assetPanel?.page?.id === page.id && assetPanel?.kind === 'ads'}
                         disabled={!connected}
                         onClick={() => openAssetPanel(page, 'ads')}
                       >
@@ -1109,9 +1137,10 @@ export function MetaIntegrationsPage() {
                       </button>
                       <button
                         type="button"
-                        className="meta-icon-btn"
+                        className={`meta-icon-btn${assetPanel?.page?.id === page.id && assetPanel?.kind === 'forms' ? ' is-active' : ''}`}
                         title={copy.forms}
                         aria-label={copy.forms}
+                        aria-pressed={assetPanel?.page?.id === page.id && assetPanel?.kind === 'forms'}
                         disabled={!connected}
                         onClick={() => openAssetPanel(page, 'forms')}
                       >
@@ -1119,9 +1148,10 @@ export function MetaIntegrationsPage() {
                       </button>
                       <button
                         type="button"
-                        className="meta-icon-btn"
+                        className={`meta-icon-btn${assetPanel?.page?.id === page.id && assetPanel?.kind === 'campaigns' ? ' is-active' : ''}`}
                         title={copy.campaigns}
                         aria-label={copy.campaigns}
+                        aria-pressed={assetPanel?.page?.id === page.id && assetPanel?.kind === 'campaigns'}
                         disabled={!connected}
                         onClick={() => openAssetPanel(page, 'campaigns')}
                       >
@@ -1171,31 +1201,23 @@ export function MetaIntegrationsPage() {
               </>
             ) : null}
           </div>
-          <div className="meta-bulk-actions" style={{ marginTop: '0.75rem' }}>
-            <button
-              type="button"
-              className="meta-btn-ghost"
-              disabled={!pageHasPrevious || Boolean(busyKey)}
-              onClick={() => load(pageNumber - 1)}
-            >
-              {copy.previous}
-            </button>
-            <span className="meta-panel-hint" style={{ margin: 0 }}>{pageNumber}</span>
-            <button
-              type="button"
-              className="meta-btn-ghost"
-              disabled={!pageHasNext || Boolean(busyKey)}
-              onClick={() => load(pageNumber + 1)}
-            >
-              {copy.next}
-            </button>
-          </div>
+          <PaginationBar
+            page={pageNumber}
+            pageSize={pageSize}
+            total={pagesTotal}
+            disabled={loading || Boolean(busyKey)}
+            onPageChange={(next) => load(next)}
+            onPageSizeChange={(size) => {
+              setPageSize(size)
+              load(1, size)
+            }}
+          />
         </div>
       </section>
 
       {/* Ads / Forms / Campaigns */}
       {assetPanel ? (
-        <section className="meta-panel">
+        <section className="meta-panel" ref={assetPanelRef}>
           <div className="meta-tabs" role="tablist">
             {['ads', 'forms', 'campaigns'].map((kind) => (
               <button
@@ -1240,104 +1262,107 @@ export function MetaIntegrationsPage() {
                 <p className="meta-panel-hint">{copy.assetPermissionHint}</p>
               </div>
             ) : null}
-            {!assetLoading && !assetError && assetPanel.kind === 'forms' ? (
-              (assetPayload?.forms || []).length === 0 ? (
-                <div className="meta-empty" style={{ marginTop: '0.85rem' }}>
-                  <p>{copy.assetFormsEmpty}</p>
-                </div>
-              ) : (
-                <div className="table-wrap" style={{ marginTop: '0.85rem' }}>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{copy.assetColName}</th>
-                        <th>{copy.assetColId}</th>
-                        <th>{copy.assetColStatus}</th>
-                        <th>{copy.assetColLocale}</th>
-                        <th>{copy.assetColLeads}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {assetPayload.forms.map((row) => (
-                        <tr key={row.id}>
-                          <td>{row.name || '—'}</td>
-                          <td>{row.id || '—'}</td>
-                          <td>{row.status || '—'}</td>
-                          <td>{row.locale || '—'}</td>
-                          <td>{row.leadsCount == null ? '—' : row.leadsCount}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+            {!assetLoading && !assetError ? (() => {
+              const allRows = assetRowsForKind(assetPanel.kind, assetPayload)
+              const emptyMessage = assetPanel.kind === 'forms'
+                ? copy.assetFormsEmpty
+                : assetPanel.kind === 'campaigns'
+                  ? copy.assetCampaignsEmpty
+                  : copy.assetAdsEmpty
+              if (allRows.length === 0) {
+                return (
+                  <div className="meta-empty" style={{ marginTop: '0.85rem' }}>
+                    <p>{emptyMessage}</p>
+                  </div>
+                )
+              }
+              const rows = pagedAssetRows(allRows)
+              return (
+                <>
+                  <div className="admin-table-wrap meta-asset-table-wrap" style={{ marginTop: '0.85rem' }}>
+                    <table className="admin-table meta-asset-table">
+                      <thead>
+                        {assetPanel.kind === 'forms' ? (
+                          <tr>
+                            <th>{copy.assetColName}</th>
+                            <th>{copy.assetColId}</th>
+                            <th>{copy.assetColStatus}</th>
+                            <th>{copy.assetColLocale}</th>
+                            <th>{copy.assetColLeads}</th>
+                          </tr>
+                        ) : null}
+                        {assetPanel.kind === 'campaigns' ? (
+                          <tr>
+                            <th>{copy.assetColName}</th>
+                            <th>{copy.assetColId}</th>
+                            <th>{copy.assetColStatus}</th>
+                            <th>{copy.assetColObjective}</th>
+                            <th>{copy.assetColAdAccount}</th>
+                          </tr>
+                        ) : null}
+                        {assetPanel.kind === 'ads' ? (
+                          <tr>
+                            <th>{copy.assetColName}</th>
+                            <th>{copy.assetColId}</th>
+                            <th>{copy.assetColStatus}</th>
+                            <th>{copy.assetColCampaign}</th>
+                            <th>{copy.assetColAdSet}</th>
+                            <th>{copy.assetColAdAccount}</th>
+                          </tr>
+                        ) : null}
+                      </thead>
+                      <tbody>
+                        {assetPanel.kind === 'forms'
+                          ? rows.map((row) => (
+                            <tr key={row.id}>
+                              <td title={row.name || ''}>{row.name || '—'}</td>
+                              <td className="meta-asset-id" title={row.id || ''}>{row.id || '—'}</td>
+                              <td>{row.status || '—'}</td>
+                              <td>{row.locale || '—'}</td>
+                              <td>{row.leadsCount == null ? '—' : row.leadsCount}</td>
+                            </tr>
+                          ))
+                          : null}
+                        {assetPanel.kind === 'campaigns'
+                          ? rows.map((row) => (
+                            <tr key={`${row.adAccountId}-${row.id}`}>
+                              <td title={row.name || ''}>{row.name || '—'}</td>
+                              <td className="meta-asset-id" title={row.id || ''}>{row.id || '—'}</td>
+                              <td>{row.effectiveStatus || row.status || '—'}</td>
+                              <td title={row.objective || ''}>{row.objective || '—'}</td>
+                              <td title={row.adAccountName || row.adAccountId || ''}>{row.adAccountName || row.adAccountId || '—'}</td>
+                            </tr>
+                          ))
+                          : null}
+                        {assetPanel.kind === 'ads'
+                          ? rows.map((row) => (
+                            <tr key={`${row.adAccountId}-${row.id}`}>
+                              <td title={row.name || ''}>{row.name || '—'}</td>
+                              <td className="meta-asset-id" title={row.id || ''}>{row.id || '—'}</td>
+                              <td>{row.effectiveStatus || row.status || '—'}</td>
+                              <td className="meta-asset-id" title={row.campaignId || ''}>{row.campaignId || '—'}</td>
+                              <td className="meta-asset-id" title={row.adsetId || ''}>{row.adsetId || '—'}</td>
+                              <td title={row.adAccountName || row.adAccountId || ''}>{row.adAccountName || row.adAccountId || '—'}</td>
+                            </tr>
+                          ))
+                          : null}
+                      </tbody>
+                    </table>
+                  </div>
+                  <PaginationBar
+                    page={assetPage}
+                    pageSize={assetPageSize}
+                    total={allRows.length}
+                    disabled={assetLoading}
+                    onPageChange={setAssetPage}
+                    onPageSizeChange={(size) => {
+                      setAssetPageSize(size)
+                      setAssetPage(1)
+                    }}
+                  />
+                </>
               )
-            ) : null}
-            {!assetLoading && !assetError && assetPanel.kind === 'campaigns' ? (
-              (assetPayload?.campaigns || []).length === 0 ? (
-                <div className="meta-empty" style={{ marginTop: '0.85rem' }}>
-                  <p>{copy.assetCampaignsEmpty}</p>
-                </div>
-              ) : (
-                <div className="table-wrap" style={{ marginTop: '0.85rem' }}>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{copy.assetColName}</th>
-                        <th>{copy.assetColId}</th>
-                        <th>{copy.assetColStatus}</th>
-                        <th>{copy.assetColObjective}</th>
-                        <th>{copy.assetColAdAccount}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {assetPayload.campaigns.map((row) => (
-                        <tr key={`${row.adAccountId}-${row.id}`}>
-                          <td>{row.name || '—'}</td>
-                          <td>{row.id || '—'}</td>
-                          <td>{row.effectiveStatus || row.status || '—'}</td>
-                          <td>{row.objective || '—'}</td>
-                          <td>{row.adAccountName || row.adAccountId || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )
-            ) : null}
-            {!assetLoading && !assetError && assetPanel.kind === 'ads' ? (
-              (assetPayload?.ads || []).length === 0 ? (
-                <div className="meta-empty" style={{ marginTop: '0.85rem' }}>
-                  <p>{copy.assetAdsEmpty}</p>
-                </div>
-              ) : (
-                <div className="table-wrap" style={{ marginTop: '0.85rem' }}>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{copy.assetColName}</th>
-                        <th>{copy.assetColId}</th>
-                        <th>{copy.assetColStatus}</th>
-                        <th>{copy.assetColCampaign}</th>
-                        <th>{copy.assetColAdSet}</th>
-                        <th>{copy.assetColAdAccount}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {assetPayload.ads.map((row) => (
-                        <tr key={`${row.adAccountId}-${row.id}`}>
-                          <td>{row.name || '—'}</td>
-                          <td>{row.id || '—'}</td>
-                          <td>{row.effectiveStatus || row.status || '—'}</td>
-                          <td>{row.campaignId || '—'}</td>
-                          <td>{row.adsetId || '—'}</td>
-                          <td>{row.adAccountName || row.adAccountId || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )
-            ) : null}
+            })() : null}
           </div>
         </section>
       ) : null}

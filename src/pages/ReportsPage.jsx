@@ -219,6 +219,23 @@ export function ReportsPage() {
               >
                 {busy === 'xlsx' ? 'Preparing…' : 'Download Excel'}
               </button>
+              <button
+                type="button"
+                className="ghost-btn"
+                disabled={Boolean(busy)}
+                onClick={() => {
+                  const range = defaultRange()
+                  setStartDate(range.startDate)
+                  setEndDate(range.endDate)
+                  setPageType('')
+                  setAgentId('')
+                  setStatusId('')
+                  setError('')
+                  setNotice('')
+                }}
+              >
+                Reset
+              </button>
             </div>
             {!canExport ? (
               <p className="sub">You can view this page, but download requires export permission.</p>

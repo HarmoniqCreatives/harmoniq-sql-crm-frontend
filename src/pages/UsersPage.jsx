@@ -20,6 +20,7 @@ import {
 import { useAuth } from '../auth/AuthContext'
 import { hasPermission, perm } from '../auth/permissions'
 import { PasswordInput } from '../components/PasswordInput'
+import { PaginationBar } from '../components/PaginationBar'
 import { Toast, copyText } from '../components/Toast'
 
 /**
@@ -47,6 +48,7 @@ export function UsersPage() {
   const [users, setUsers] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [search, setSearch] = useState('')
   const [roleId, setRoleId] = useState('')
   const [status, setStatus] = useState('')
@@ -77,7 +79,7 @@ export function UsersPage() {
     try {
       const payload = await listUsers({
         page,
-        limit: 20,
+        limit: pageSize,
         search,
         roleId,
         status,
@@ -93,7 +95,7 @@ export function UsersPage() {
     } finally {
       setLoading(false)
     }
-  }, [canView, page, search, roleId, status, branchId, teamId, sort, direction])
+  }, [canView, page, pageSize, search, roleId, status, branchId, teamId, sort, direction])
 
   const loadMeta = useCallback(async () => {
     try {
@@ -188,7 +190,17 @@ export function UsersPage() {
     return <div className="admin-panel"><p className="empty-state">You do not have permission to view users.</p></div>
   }
 
-  const pageCount = Math.max(1, Math.ceil(total / 20))
+  function resetFilters() {
+    setSearch('')
+    setRoleId('')
+    setStatus('')
+    setBranchId('')
+    setTeamId('')
+    setSort('name')
+    setDirection('asc')
+    setPage(1)
+  }
+
   const assignableRoles = roles.filter((role) => !role.isProtected)
 
   return (
@@ -249,6 +261,7 @@ export function UsersPage() {
             <option value="status:asc">Status</option>
           </select>
         </div>
+        <button type="button" className="ghost-btn" onClick={resetFilters}>Reset</button>
         {canCreate ? (
           <button type="button" className="primary-btn" onClick={() => setAddOpen(true)}>Add user</button>
         ) : null}
@@ -316,14 +329,17 @@ export function UsersPage() {
             </table>
           </div>
         )}
-        <div className="pager">
-          <span className="sub">{total} users</span>
-          <div className="icon-actions">
-            <button type="button" className="ghost-btn" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Previous</button>
-            <span className="sub">Page {page} / {pageCount}</span>
-            <button type="button" className="ghost-btn" disabled={page >= pageCount} onClick={() => setPage((value) => value + 1)}>Next</button>
-          </div>
-        </div>
+        <PaginationBar
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          disabled={loading}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size)
+            setPage(1)
+          }}
+        />
       </div>
 
       {canInvite ? (

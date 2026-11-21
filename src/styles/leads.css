@@ -89,6 +89,45 @@
   min-width: 200px;
 }
 
+.leads-page-shell .lead-date-preset {
+  min-width: 150px;
+}
+
+.leads-page-shell .lead-custom-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hc-space-2);
+  align-items: flex-end;
+}
+
+.leads-page-shell .lead-custom-date {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.leads-page-shell .lead-custom-date-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.leads-page-shell .lead-custom-date-row input[type="text"] {
+  width: 7.5rem;
+  min-width: 7.5rem;
+  flex: 0 0 auto;
+}
+
+.leads-page-shell .lead-custom-date-row input[type="date"] {
+  width: 8.5rem;
+  min-width: 8.5rem;
+  flex: 0 0 auto;
+}
+
+.leads-page-shell .lead-custom-date span {
+  font-size: var(--hc-fs-helper);
+  color: var(--hc-text-muted);
+}
+
 .leads-page-shell .data-wrap {
   width: 100%;
   overflow-x: auto;
