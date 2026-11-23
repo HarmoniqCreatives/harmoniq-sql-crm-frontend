@@ -105,22 +105,9 @@
   gap: 0.25rem;
 }
 
-.leads-page-shell .lead-custom-date-row {
-  display: flex;
-  gap: 0.35rem;
-  align-items: center;
-}
-
-.leads-page-shell .lead-custom-date-row input[type="text"] {
+.leads-page-shell .lead-custom-date input[type="text"] {
   width: 7.5rem;
   min-width: 7.5rem;
-  flex: 0 0 auto;
-}
-
-.leads-page-shell .lead-custom-date-row input[type="date"] {
-  width: 8.5rem;
-  min-width: 8.5rem;
-  flex: 0 0 auto;
 }
 
 .leads-page-shell .lead-custom-date span {
