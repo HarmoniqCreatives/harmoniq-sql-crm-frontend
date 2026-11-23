@@ -14,7 +14,6 @@ export function PermissionsPage() {
   const [params] = useSearchParams()
   const canView = hasPermission(viewer, perm.rolesView)
   const canEdit = hasPermission(viewer, perm.rolesEdit) || hasPermission(viewer, 'roles.manage')
-  const held = viewer?.role?.permissions || []
 
   const [roles, setRoles] = useState([])
   const [matrix, setMatrix] = useState({})
@@ -68,7 +67,7 @@ export function PermissionsPage() {
   const locked = !canEdit || Boolean(role?.isProtected) || viewer?.role?.id === roleId
 
   function toggle(key) {
-    if (locked || !held.includes(key)) {
+    if (locked || !hasPermission(viewer, key)) {
       return
     }
     setSelected((current) => (
@@ -134,7 +133,7 @@ export function PermissionsPage() {
                           <input
                             type="checkbox"
                             checked={selected.includes(entry.key)}
-                            disabled={locked || busy || !held.includes(entry.key)}
+                            disabled={locked || busy || !hasPermission(viewer, entry.key)}
                             onChange={() => toggle(entry.key)}
                           />
                           <span>

@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "test": "node --test src/api/authRefresh.test.js src/auth/loginReturn.test.js src/pages/leads/transferFormHelpers.test.js src/navigation.test.js src/pages/integrations/whatsappEmbeddedSignup.test.js src/utils/dateRangePresets.test.js",
+    "test": "node --test src/api/authRefresh.test.js src/auth/loginReturn.test.js src/auth/permissions.test.js src/pages/leads/transferFormHelpers.test.js src/navigation.test.js src/pages/integrations/whatsappEmbeddedSignup.test.js src/utils/dateRangePresets.test.js",
     "preview": "vite preview"
   },
   "dependencies": {
