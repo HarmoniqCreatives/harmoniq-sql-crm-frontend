@@ -14,9 +14,9 @@ import { Toast } from '../components/Toast'
 /**
  * Roles & permissions administration.
  *
- * The matrix only offers checkboxes for permissions the viewer already holds,
- * matching backend privilege-escalation rules. System/protected roles stay
- * non-deletable in the UI as well as the API.
+ * Checkboxes are enabled for permissions the viewer can grant
+ * (`hasPermission`, including protected Super Admin). Backend still enforces
+ * privilege-escalation. System/protected roles stay non-deletable in the UI.
  */
 export function RolesPage() {
   const { user: viewer } = useAuth()
@@ -140,7 +140,7 @@ export function RolesPage() {
         <RoleEditorModal
           role={editor}
           matrix={matrix}
-          heldPermissions={viewer?.role?.permissions || []}
+          viewer={viewer}
           onClose={() => setEditor(null)}
           onSaved={async (message) => {
             setEditor(null)
@@ -154,7 +154,7 @@ export function RolesPage() {
   )
 }
 
-function RoleEditorModal({ role, matrix, heldPermissions, onClose, onSaved, onError }) {
+function RoleEditorModal({ role, matrix, viewer, onClose, onSaved, onError }) {
   const [name, setName] = useState(role.name || '')
   const [description, setDescription] = useState(role.description || '')
   const [permissions, setPermissions] = useState(role.permissions || [])
@@ -162,6 +162,9 @@ function RoleEditorModal({ role, matrix, heldPermissions, onClose, onSaved, onEr
   const modules = Object.keys(matrix || {})
 
   function toggle(key) {
+    if (!hasPermission(viewer, key)) {
+      return
+    }
     setPermissions((current) => (
       current.includes(key) ? current.filter((item) => item !== key) : [...current, key]
     ))
@@ -201,7 +204,7 @@ function RoleEditorModal({ role, matrix, heldPermissions, onClose, onSaved, onEr
               <h4>{moduleName}</h4>
               <div className="perm-list">
                 {(matrix[moduleName] || []).map((entry) => {
-                  const allowed = heldPermissions.includes(entry.key)
+                  const allowed = hasPermission(viewer, entry.key)
                   return (
                     <label key={entry.key}>
                       <input
