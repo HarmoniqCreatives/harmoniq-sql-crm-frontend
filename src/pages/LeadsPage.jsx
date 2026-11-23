@@ -592,24 +592,29 @@ export function LeadsPage() {
     setEndDateDisplay('')
   }
 
-  function setCustomFromPicker(which, ymd) {
-    if (!ymd) {
-      if (which === 'start') {
-        setStartDate('')
-        setStartDateDisplay('')
-        return
-      }
-      setEndDate('')
-      setEndDateDisplay('')
-      return
-    }
+  function clearDateRangeError() {
+    setError((current) => (current === errors.dateRangeInvalid ? '' : current))
+  }
+
+  function applyCustomDateValue(which, ymd) {
+    const nextStart = which === 'start' ? (ymd || '') : startDate
+    const nextEnd = which === 'end' ? (ymd || '') : endDate
     if (which === 'start') {
-      setStartDate(ymd)
-      setStartDateDisplay(formatDisplayDate(ymd))
+      setStartDate(ymd || '')
+      setStartDateDisplay(ymd ? formatDisplayDate(ymd) : '')
+    } else {
+      setEndDate(ymd || '')
+      setEndDateDisplay(ymd ? formatDisplayDate(ymd) : '')
+    }
+    if (nextStart && nextEnd && nextStart > nextEnd) {
+      setError(errors.dateRangeInvalid)
       return
     }
-    setEndDate(ymd)
-    setEndDateDisplay(formatDisplayDate(ymd))
+    clearDateRangeError()
+  }
+
+  function setCustomFromPicker(which, ymd) {
+    applyCustomDateValue(which, ymd)
   }
 
   function commitCustomText(which, raw) {
@@ -1036,25 +1041,45 @@ export function LeadsPage() {
             <div className="lead-custom-dates">
               <label className="lead-custom-date">
                 <span>{messages.dateFrom}</span>
-                <input
-                  type="text"
-                  placeholder={messages.dateDisplayHint}
-                  value={startDateDisplay}
-                  onChange={(event) => setStartDateDisplay(event.target.value)}
-                  onBlur={(event) => commitCustomText('start', event.target.value)}
-                  aria-label={messages.dateFrom}
-                />
+                <div className="lead-custom-date-field">
+                  <input
+                    type="text"
+                    placeholder={messages.dateDisplayHint}
+                    value={startDateDisplay}
+                    onChange={(event) => setStartDateDisplay(event.target.value)}
+                    onBlur={(event) => commitCustomText('start', event.target.value)}
+                    aria-label={messages.dateFrom}
+                  />
+                  <input
+                    type="date"
+                    className="lead-custom-date-picker"
+                    value={startDate}
+                    onChange={(event) => setCustomFromPicker('start', event.target.value)}
+                    aria-label={`${messages.dateFrom} calendar`}
+                    tabIndex={-1}
+                  />
+                </div>
               </label>
               <label className="lead-custom-date">
                 <span>{messages.dateTo}</span>
-                <input
-                  type="text"
-                  placeholder={messages.dateDisplayHint}
-                  value={endDateDisplay}
-                  onChange={(event) => setEndDateDisplay(event.target.value)}
-                  onBlur={(event) => commitCustomText('end', event.target.value)}
-                  aria-label={messages.dateTo}
-                />
+                <div className="lead-custom-date-field">
+                  <input
+                    type="text"
+                    placeholder={messages.dateDisplayHint}
+                    value={endDateDisplay}
+                    onChange={(event) => setEndDateDisplay(event.target.value)}
+                    onBlur={(event) => commitCustomText('end', event.target.value)}
+                    aria-label={messages.dateTo}
+                  />
+                  <input
+                    type="date"
+                    className="lead-custom-date-picker"
+                    value={endDate}
+                    onChange={(event) => setCustomFromPicker('end', event.target.value)}
+                    aria-label={`${messages.dateTo} calendar`}
+                    tabIndex={-1}
+                  />
+                </div>
               </label>
             </div>
           ) : null}
