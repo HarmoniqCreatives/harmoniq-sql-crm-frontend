@@ -75,6 +75,14 @@ export function PermissionsPage() {
     ))
   }
 
+  function matrixKeys() {
+    return new Set(
+      Object.values(matrix || {})
+        .flat()
+        .map((entry) => entry.key),
+    )
+  }
+
   async function onSubmit(event) {
     event.preventDefault()
     if (!role || locked) {
@@ -86,7 +94,11 @@ export function PermissionsPage() {
     setBusy(true)
     setError('')
     try {
-      const payload = await updateRole(role.id, { permissions: selected, scope })
+      // Only persist matrix keys so legacy aliases left on the role row
+      // (users.manage, activities.manage, …) do not break the save.
+      const allowed = matrixKeys()
+      const permissions = selected.filter((key) => allowed.has(key))
+      const payload = await updateRole(role.id, { permissions, scope })
       setNotice(payload.data.message)
       await load()
     } catch (saveError) {
