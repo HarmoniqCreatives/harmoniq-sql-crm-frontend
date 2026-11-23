@@ -1036,41 +1036,25 @@ export function LeadsPage() {
             <div className="lead-custom-dates">
               <label className="lead-custom-date">
                 <span>{messages.dateFrom}</span>
-                <div className="lead-custom-date-row">
-                  <input
-                    type="text"
-                    placeholder={messages.dateDisplayHint}
-                    value={startDateDisplay}
-                    onChange={(event) => setStartDateDisplay(event.target.value)}
-                    onBlur={(event) => commitCustomText('start', event.target.value)}
-                    aria-label={messages.dateFrom}
-                  />
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(event) => setCustomFromPicker('start', event.target.value)}
-                    aria-label={`${messages.dateFrom} picker`}
-                  />
-                </div>
+                <input
+                  type="text"
+                  placeholder={messages.dateDisplayHint}
+                  value={startDateDisplay}
+                  onChange={(event) => setStartDateDisplay(event.target.value)}
+                  onBlur={(event) => commitCustomText('start', event.target.value)}
+                  aria-label={messages.dateFrom}
+                />
               </label>
               <label className="lead-custom-date">
                 <span>{messages.dateTo}</span>
-                <div className="lead-custom-date-row">
-                  <input
-                    type="text"
-                    placeholder={messages.dateDisplayHint}
-                    value={endDateDisplay}
-                    onChange={(event) => setEndDateDisplay(event.target.value)}
-                    onBlur={(event) => commitCustomText('end', event.target.value)}
-                    aria-label={messages.dateTo}
-                  />
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(event) => setCustomFromPicker('end', event.target.value)}
-                    aria-label={`${messages.dateTo} picker`}
-                  />
-                </div>
+                <input
+                  type="text"
+                  placeholder={messages.dateDisplayHint}
+                  value={endDateDisplay}
+                  onChange={(event) => setEndDateDisplay(event.target.value)}
+                  onBlur={(event) => commitCustomText('end', event.target.value)}
+                  aria-label={messages.dateTo}
+                />
               </label>
             </div>
           ) : null}
