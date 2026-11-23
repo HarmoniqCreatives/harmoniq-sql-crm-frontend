@@ -174,7 +174,17 @@ function RoleEditorModal({ role, matrix, viewer, onClose, onSaved, onError }) {
     event.preventDefault()
     setBusy(true)
     try {
-      const body = { name, description, permissions }
+      const allowed = new Set(
+        Object.values(matrix || {})
+          .flat()
+          .map((entry) => entry.key),
+      )
+      // Drop legacy/non-matrix keys so role saves are not rejected as invalid.
+      const body = {
+        name,
+        description,
+        permissions: permissions.filter((key) => allowed.has(key)),
+      }
       const payload = role.id
         ? await updateRole(role.id, body)
         : await createRole(body)

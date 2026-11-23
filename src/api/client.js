@@ -72,8 +72,14 @@ export function clearAccessToken() {
  * @returns {string}
  */
 export function readApiError(error) {
-  if (error?.response?.data?.error?.message) {
-    return error.response.data.error.message
+  const payload = error?.response?.data?.error
+  if (payload?.message) {
+    // errorHandler flattens AppError.details onto the error body (e.g. invalid: [...]).
+    const invalid = payload.invalid || payload.details?.invalid
+    if (Array.isArray(invalid) && invalid.length) {
+      return `${payload.message} (${invalid.join(', ')})`
+    }
+    return payload.message
   }
   if (error?.message) {
     return error.message
