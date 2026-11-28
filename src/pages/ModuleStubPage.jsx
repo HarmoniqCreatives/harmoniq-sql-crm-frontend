@@ -6,7 +6,7 @@ export function ModuleStubPage({ title, description }) {
         <h2>{title}</h2>
         <p className="sub">{description}</p>
         <p className="empty-state">
-          Business logic will be ported from the existing Melo CRM workflows
+          Business logic will be ported from the existing FILOS CRM workflows
           after you approve the next implementation phase.
         </p>
       </div>

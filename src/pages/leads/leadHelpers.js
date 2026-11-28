@@ -48,21 +48,46 @@ export function formatCampaignStatus(value, { messages, isMeta = false } = {}) {
   return messages.campaignStatusInactive || 'Inactive'
 }
 
+/** @param {object|null|undefined} lead */
+export function leadEntryMethod(lead) {
+  return String(lead?.entryMethod || lead?.addedVia || 'manual')
+}
+
 /**
- * Prefer Meta generation time for Meta leads; CRM createdAt for manual.
+ * User-facing Added Via label.
+ * @param {string|null|undefined} entryMethod
+ * @param {Record<string, string>} messages
+ */
+export function formatAddedViaLabel(entryMethod, messages = {}) {
+  const value = String(entryMethod || 'manual')
+  if (value === 'excel_import') return messages.addedViaExcel || 'Excel Import'
+  if (value === 'meta_import') return messages.addedViaMeta || 'Meta'
+  if (value === 'api_import') return messages.addedViaApi || 'API Import'
+  if (value === 'unknown') return messages.addedViaUnknown || 'Unknown'
+  return messages.addedViaManual || 'Manual'
+}
+
+/**
+ * Whether campaign status / Meta chrome should treat the lead as Meta-origin.
+ * Prefer stored entryMethod; fall back to metaCreatedAt (not Lead Source alone).
+ */
+export function isMetaOriginLead(lead) {
+  if (!lead) return false
+  if (leadEntryMethod(lead) === 'meta_import') return true
+  return Boolean(lead.metaCreatedAt)
+}
+
+/**
+ * Prefer Meta generation time for Meta leads; CRM createdAt otherwise.
  * Never invent a Meta time from sync createdAt for Meta leads with a null metaCreatedAt.
  */
 export function formatLeadGeneratedStamp(lead, formatStamp) {
   if (!lead) return '—'
-  const isMeta = Boolean(lead.metaCreatedAt) || (lead.source === 'facebook' && lead.campaignName)
   if (lead.metaCreatedAt) {
     return formatStamp(lead.metaCreatedAt)
   }
-  // Meta lead without stored generation time: do not show sync date as generation date.
-  if (lead.campaignName || lead.source === 'facebook' || lead.source === 'instagram') {
-    // Heuristic: Meta-sourced rows usually have campaign or facebook source; still prefer createdAt only for pure manual.
-  }
-  if (lead.metaCreatedAt === null && (lead.source === 'facebook' || lead.source === 'instagram')) {
+  const origin = leadEntryMethod(lead)
+  if (origin === 'meta_import' || lead.source === 'facebook' || lead.source === 'instagram') {
     return '—'
   }
   return formatStamp(lead.createdAt)

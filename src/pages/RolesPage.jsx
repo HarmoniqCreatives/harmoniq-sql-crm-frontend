@@ -8,7 +8,7 @@ import {
   updateRole,
 } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
-import { hasPermission, perm } from '../auth/permissions'
+import { buildSavedRolePermissions, hasPermission, perm } from '../auth/permissions'
 import { Toast } from '../components/Toast'
 
 /**
@@ -17,12 +17,13 @@ import { Toast } from '../components/Toast'
  * Checkboxes are enabled for permissions the viewer can grant
  * (`hasPermission`, including protected Super Admin). Backend still enforces
  * privilege-escalation. System/protected roles stay non-deletable in the UI.
+ * Legacy keys outside the current matrix are preserved on update.
  */
 export function RolesPage() {
   const { user: viewer } = useAuth()
   const canView = hasPermission(viewer, perm.rolesView)
   const canCreate = hasPermission(viewer, perm.rolesCreate)
-  const canEdit = hasPermission(viewer, perm.rolesEdit)
+  const canEdit = hasPermission(viewer, perm.rolesEdit) || hasPermission(viewer, 'roles.manage')
   const canDelete = hasPermission(viewer, perm.rolesDelete)
 
   const [roles, setRoles] = useState([])
@@ -174,16 +175,16 @@ function RoleEditorModal({ role, matrix, viewer, onClose, onSaved, onError }) {
     event.preventDefault()
     setBusy(true)
     try {
-      const allowed = new Set(
-        Object.values(matrix || {})
-          .flat()
-          .map((entry) => entry.key),
-      )
-      // Drop legacy/non-matrix keys so role saves are not rejected as invalid.
+      // Matrix selections + preserve existing legacy keys not shown in the matrix.
       const body = {
         name,
         description,
-        permissions: permissions.filter((key) => allowed.has(key)),
+        permissions: buildSavedRolePermissions({
+          selected: permissions,
+          existingPermissions: role.permissions || [],
+          matrix,
+          preserveLegacy: Boolean(role.id),
+        }),
       }
       const payload = role.id
         ? await updateRole(role.id, body)

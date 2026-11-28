@@ -78,4 +78,22 @@ describe('integrations navigation', () => {
     assert.equal(canOpenPage(viewerWith('leads.view'), 'integrations-whatsapp'), false)
     assert.equal(canOpenPage(viewerWith('whatsapp.manage'), 'integrations-whatsapp'), true)
   })
+
+  it('Super Admin sees every gated navigation item without seeded permissions', () => {
+    const superAdmin = {
+      role: {
+        key: 'super_admin',
+        isProtected: true,
+        permissions: [],
+      },
+    }
+    assert.equal(canOpenPage(superAdmin, 'leads'), true)
+    assert.equal(canOpenPage(superAdmin, 'integrations-facebook'), true)
+    assert.equal(canOpenPage(superAdmin, 'integrations-whatsapp'), true)
+    assert.equal(canOpenPage(superAdmin, 'integrations-email'), true)
+    const visible = visibleNavigation(superAdmin)
+    const integrations = visible.find((item) => item.id === 'integrations-group')
+    assert.ok(integrations)
+    assert.equal(integrations.children.length, 4)
+  })
 })

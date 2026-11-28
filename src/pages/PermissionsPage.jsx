@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { listRoles, readApiError, updateRole } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
-import { hasPermission, perm } from '../auth/permissions'
+import { buildSavedRolePermissions, hasPermission, perm } from '../auth/permissions'
 import { Toast } from '../components/Toast'
 
 /**
  * Dedicated Manage Permissions page (legacy parity under Roles & Permissions).
  * Uses the central permission matrix from the API; backend enforces escalation rules.
+ * Legacy keys outside the matrix are preserved when saving an existing role.
  */
 export function PermissionsPage() {
   const { user: viewer } = useAuth()
@@ -75,14 +76,6 @@ export function PermissionsPage() {
     ))
   }
 
-  function matrixKeys() {
-    return new Set(
-      Object.values(matrix || {})
-        .flat()
-        .map((entry) => entry.key),
-    )
-  }
-
   async function onSubmit(event) {
     event.preventDefault()
     if (!role || locked) {
@@ -94,10 +87,12 @@ export function PermissionsPage() {
     setBusy(true)
     setError('')
     try {
-      // Only persist matrix keys so legacy aliases left on the role row
-      // (users.manage, activities.manage, …) do not break the save.
-      const allowed = matrixKeys()
-      const permissions = selected.filter((key) => allowed.has(key))
+      const permissions = buildSavedRolePermissions({
+        selected,
+        existingPermissions: role.permissions || [],
+        matrix,
+        preserveLegacy: true,
+      })
       const payload = await updateRole(role.id, { permissions, scope })
       setNotice(payload.data.message)
       await load()

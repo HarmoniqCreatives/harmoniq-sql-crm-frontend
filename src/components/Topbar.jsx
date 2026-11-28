@@ -1,4 +1,20 @@
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
+import { hasPermission, perm } from '../auth/permissions'
+import { NotificationBell } from './NotificationBell'
+
 export function Topbar({ title, subtitle, onOpenMobile, apiStatus }) {
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const canCreateLead = hasPermission(user, perm.leadsCreate)
+
+  function onNewLead() {
+    if (!canCreateLead) {
+      return
+    }
+    navigate('/leads', { state: { openCreate: true } })
+  }
+
   return (
     <header className="topbar">
       <div className="topbar-title">
@@ -12,12 +28,17 @@ export function Topbar({ title, subtitle, onOpenMobile, apiStatus }) {
         <span className={apiStatus === 'ok' ? 'badge badge-gold' : 'badge badge-navy'} title="Backend health">
           API {apiStatus || '…'}
         </span>
-        <button type="button" className="ghost-btn" title="Notifications coming in a later phase">
-          Alerts
-        </button>
-        <button type="button" className="primary-btn" title="Lead create arrives with the Leads module">
-          New lead
-        </button>
+        <NotificationBell />
+        {canCreateLead ? (
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={onNewLead}
+            title="Create a new lead"
+          >
+            New lead
+          </button>
+        ) : null}
       </div>
     </header>
   )

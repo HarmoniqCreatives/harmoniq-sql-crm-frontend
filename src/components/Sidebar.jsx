@@ -46,7 +46,7 @@ export function Sidebar({
   return (
     <aside className={`sidebar ${mobileOpen ? 'is-open' : ''}`} aria-label="Primary">
       <div className="brand">
-        <BrandLockup collapsed={collapsed} />
+        <BrandLockup collapsed={collapsed} variant="onDark" />
         <div
           className="sidebar-company"
           title={user?.company?.name || undefined}
@@ -127,7 +127,13 @@ export function Sidebar({
           <span>{collapsed ? 'Expand' : 'Collapse'} sidebar</span>
           {collapsed ? '»' : '«'}
         </button>
-        <button type="button" className="collapse-btn" onClick={() => signOut()}>
+        <button
+          type="button"
+          className="collapse-btn"
+          onClick={() => signOut()}
+          aria-label="Sign out"
+          title="Sign out"
+        >
           <span>Sign out</span>
         </button>
         {mobileOpen ? (

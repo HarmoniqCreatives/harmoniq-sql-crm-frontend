@@ -9,15 +9,21 @@ import {
   setAccessToken,
   setAuthFailureHandler,
 } from '../api/client'
+import {
+  deactivateWebPushOnLogout,
+  syncWebPushTokenIfPermitted,
+} from '../lib/webPush'
+import { bootAuthSession } from './sessionBoot'
 
 const AuthContext = createContext(null)
 
 /**
  * Provides signed-in user state for the SPA shell.
  *
- * Boot sequence: read access token → GET /auth/me → on failure try refresh cookie
- * → clear tokens if both fail. Mid-session 401s are handled by the Axios interceptor
- * (single-flight refresh + retry); failed refresh clears auth via setAuthFailureHandler.
+ * Boot sequence: access token → GET /auth/me; if token missing or /me fails, try
+ * refresh cookie once → store access token → GET /auth/me; clear on failure.
+ * Mid-session 401s use the Axios interceptor (single-flight refresh + retry);
+ * failed refresh clears auth via setAuthFailureHandler.
  *
  * @param {{ children: import('react').ReactNode }} props
  */
@@ -38,37 +44,24 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let active = true
     async function boot() {
-      const token = getAccessToken()
-      if (!token) {
-        if (active) {
-          setLoading(false)
-        }
+      // Restore via access token and/or httpOnly refresh cookie (see bootAuthSession).
+      const restored = await bootAuthSession({
+        getAccessToken,
+        setAccessToken,
+        clearAccessToken,
+        getMe,
+        refreshSession,
+      })
+      if (!active) {
         return
       }
-      try {
-        const payload = await getMe()
-        if (active) {
-          setUser(payload.data.user)
-        }
-      } catch {
-        try {
-          const refreshed = await refreshSession()
-          setAccessToken(refreshed.data.accessToken)
-          const payload = await getMe()
-          if (active) {
-            setUser(payload.data.user)
-          }
-        } catch {
-          clearAccessToken()
-          if (active) {
-            setUser(null)
-          }
-        }
-      } finally {
-        if (active) {
-          setLoading(false)
-        }
+      if (restored) {
+        setUser(restored)
+        void syncWebPushTokenIfPermitted()
+      } else {
+        setUser(null)
       }
+      setLoading(false)
     }
     boot()
     return () => {
@@ -86,9 +79,15 @@ export function AuthProvider({ children }) {
       const payload = await loginRequest(credentials)
       setAccessToken(payload.data.accessToken)
       setUser(payload.data.user)
+      void syncWebPushTokenIfPermitted()
       return payload.data
     },
     async signOut() {
+      try {
+        await deactivateWebPushOnLogout()
+      } catch {
+        // Best-effort device deactivation.
+      }
       try {
         await logoutRequest({})
       } catch {
