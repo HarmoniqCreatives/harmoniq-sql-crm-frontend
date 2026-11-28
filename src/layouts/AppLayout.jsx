@@ -34,6 +34,22 @@ export function AppLayout() {
     }
   }, [])
 
+  // Close mobile drawer on Escape (backdrop click / nav still close separately).
+  useEffect(() => {
+    if (!mobileOpen) {
+      return undefined
+    }
+    function onKeyDown(event) {
+      if (event.key === 'Escape') {
+        setMobileOpen(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [mobileOpen])
+
   // Keep the parent group open when a child route is active.
   useEffect(() => {
     for (const item of navigation) {

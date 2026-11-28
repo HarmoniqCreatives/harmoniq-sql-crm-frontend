@@ -17,6 +17,9 @@ dist-ssr
 .env.*
 !.env.example
 
+# Generated Firebase messaging SW (built from VITE_FIREBASE_* env)
+public/firebase-messaging-sw.js
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

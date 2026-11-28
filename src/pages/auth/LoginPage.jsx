@@ -76,7 +76,7 @@ export function LoginPage() {
   }
 
   return (
-    <AuthCard title="Sign in" subtitle="Access your Melo workspace.">
+    <AuthCard title="Sign in" subtitle="Access your FILOS CRM workspace.">
       <form className="auth-form" onSubmit={onSubmit}>
         {error ? <p className="auth-error">{error}</p> : null}
         <div className="auth-field">

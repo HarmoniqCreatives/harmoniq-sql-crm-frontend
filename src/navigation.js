@@ -2,7 +2,10 @@
  * Sidebar navigation mirrors legacy faloniq-crm parent/child hierarchy and labels.
  * Paths map to React Router; stubs remain until later modules ship.
  * Permission keys use the Harmoniq registry (`users.invite` etc.) with legacy aliases.
+ * Visibility uses centralized `hasPermission` (Super Admin bypass included).
  */
+
+import { hasPermission } from './auth/permissions.js'
 
 export const navigation = [
   {
@@ -179,6 +182,15 @@ export const navigation = [
     title: 'Reports',
     subtitle: 'Lead distribution, status and activity summaries.',
   },
+  {
+    id: 'recycle-bin',
+    path: '/recycle-bin',
+    permission: 'recycle_bin.view',
+    label: 'Recycle Bin',
+    icon: '♻',
+    title: 'Recycle Bin',
+    subtitle: 'Restore soft-deleted leads, roles, catalog items, Meta profiles, and email reports.',
+  },
 ]
 
 /**
@@ -226,7 +238,8 @@ export function getGroupIds() {
 }
 
 /**
- * Whether the viewer may open a page. Protected Super Admin sees everything.
+ * Whether the viewer may open a page.
+ * Uses `hasPermission` so Super Admin automatically sees every gated screen.
  *
  * @param {object|null} viewer
  * @param {string} pageId
@@ -239,18 +252,14 @@ export function canOpenPage(viewer, pageId) {
   if (!viewer.role) {
     return pageId === 'dashboard'
   }
-  if (viewer.role.isProtected) {
-    return true
-  }
-  const permissions = viewer.role.permissions || []
   const page = getPage(pageId)
   if (page.anyOf) {
-    return page.anyOf.some((key) => permissions.includes(key))
+    return page.anyOf.some((key) => hasPermission(viewer, key))
   }
   if (!page.permission) {
     return true
   }
-  return permissions.includes(page.permission)
+  return hasPermission(viewer, page.permission)
 }
 
 /**

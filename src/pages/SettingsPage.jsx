@@ -41,6 +41,8 @@ export function SettingsPage() {
   const [company, setCompany] = useState(null)
   const [timezone, setTimezone] = useState('')
   const [baseCurrency, setBaseCurrency] = useState('')
+  const [followUpReminderMinutes, setFollowUpReminderMinutes] = useState(5)
+  const [followUpReminderOptions, setFollowUpReminderOptions] = useState([5, 10, 15, 25, 30, 60])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -61,6 +63,11 @@ export function SettingsPage() {
     setCompany(companyPayload.data.company)
     setTimezone(companyPayload.data.company.timezone)
     setBaseCurrency(companyPayload.data.company.baseCurrency)
+    setFollowUpReminderMinutes(Number(companyPayload.data.company.followUpReminderMinutes) || 5)
+    if (Array.isArray(companyPayload.data.company.followUpReminderMinutesOptions)
+      && companyPayload.data.company.followUpReminderMinutesOptions.length) {
+      setFollowUpReminderOptions(companyPayload.data.company.followUpReminderMinutesOptions)
+    }
   }
 
   useEffect(() => {
@@ -97,8 +104,13 @@ export function SettingsPage() {
     }
     setError('')
     try {
-      const payload = await updateCompany({ timezone, baseCurrency })
+      const payload = await updateCompany({
+        timezone,
+        baseCurrency,
+        followUpReminderMinutes: Number(followUpReminderMinutes),
+      })
       setCompany(payload.data.company)
+      setFollowUpReminderMinutes(Number(payload.data.company.followUpReminderMinutes) || 5)
       setNotice(payload.data.message)
     } catch (saveError) {
       setError(readApiError(saveError))
@@ -222,6 +234,24 @@ export function SettingsPage() {
                     <option key={code} value={code}>{currencyLabel(code)}</option>
                   ))}
                 </select>
+              </div>
+              <div className="field">
+                <label htmlFor="company-followup-reminder">Follow-up reminder</label>
+                <select
+                  id="company-followup-reminder"
+                  value={followUpReminderMinutes}
+                  disabled={!canManage}
+                  onChange={(e) => setFollowUpReminderMinutes(Number(e.target.value))}
+                >
+                  {followUpReminderOptions.map((minutes) => (
+                    <option key={minutes} value={minutes}>
+                      {minutes} minutes before
+                    </option>
+                  ))}
+                </select>
+                <p className="sub" style={{ margin: '0.35rem 0 0' }}>
+                  Notify the assigned agent this many minutes before the scheduled follow-up.
+                </p>
               </div>
               {canManage ? (
                 <div className="modal-actions" style={{ justifyContent: 'flex-start' }}>

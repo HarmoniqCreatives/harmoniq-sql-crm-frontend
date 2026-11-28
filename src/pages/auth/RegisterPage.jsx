@@ -88,7 +88,7 @@ export function RegisterPage() {
     <AuthCard
       wide
       title="Create your company"
-      subtitle="Register Melo for your organization."
+      subtitle="Register FILOS CRM for your organization."
     >
       <form className="auth-form" onSubmit={onSubmit}>
         {error ? <p className="auth-error">{error}</p> : null}

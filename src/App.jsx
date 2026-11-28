@@ -13,6 +13,7 @@ import { ModuleStubPage } from './pages/ModuleStubPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { MetaSyncToasts } from './components/MetaSyncToasts'
 import { PermissionsPage } from './pages/PermissionsPage'
+import { RecycleBinPage } from './pages/RecycleBinPage'
 import { RolesPage } from './pages/RolesPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { UsersPage } from './pages/UsersPage'
@@ -76,6 +77,7 @@ export default function App() {
             <Route path="integrations/whatsapp" element={<WhatsAppIntegrationPage />} />
             <Route path="integrations/instagram" element={<InstagramIntegrationPage />} />
             <Route path="integrations/email" element={<EmailIntegrationPage />} />
+            <Route path="recycle-bin" element={<RecycleBinPage />} />
             {/* Backward-compatible Meta bookmark + OAuth return URL */}
             <Route path="meta" element={<MetaLegacyRedirect />} />
           </Route>

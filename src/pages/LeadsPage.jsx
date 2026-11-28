@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   assignLead,
   bulkAssignLeads,
@@ -29,6 +30,7 @@ import {
 } from '../utils/dateRangePresets'
 import {
   actionShapes,
+  addedViaOptions,
   errors,
   feedbackOptions,
   historyFilters,
@@ -38,12 +40,24 @@ import {
   readinessOptions,
   sourceOptions,
 } from './leads/leadCopy'
-import { formatCampaignStatus, formatLeadGeneratedStamp, isEmail, isPastDateValue, normalizeEmail, todayDateValue } from './leads/leadHelpers'
+import {
+  formatAddedViaLabel,
+  formatCampaignStatus,
+  formatLeadGeneratedStamp,
+  isEmail,
+  isMetaOriginLead,
+  isPastDateValue,
+  leadEntryMethod,
+  normalizeEmail,
+  todayDateValue,
+} from './leads/leadHelpers'
 import {
   displayCurrentAgentName,
   buildTransferAssignmentPayload,
   eligibleTransferAgents,
 } from './leads/transferFormHelpers'
+import { ImportLeadsDialog } from './leads/ImportLeadsDialog'
+import { canShowImportExcel } from './leads/leadImportAccess'
 
 /**
  * Lead dialog shell. Uses dedicated `leads-modal-*` classes so admin.css
@@ -311,6 +325,8 @@ function useCloseOnOutside(open, containerRef, onClose) {
  */
 export function LeadsPage() {
   const { user: viewer } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const canView = hasPermission(viewer, perm.leadsView)
   const canCreate = hasPermission(viewer, perm.leadsCreate)
   const canEdit = hasPermission(viewer, perm.leadsEdit)
@@ -320,6 +336,7 @@ export function LeadsPage() {
   const canBulkAssign = hasPermission(viewer, perm.leadsBulkAssign)
   const canBulkTransfer = hasPermission(viewer, perm.leadsBulkTransfer)
   const canBulkDelete = hasPermission(viewer, perm.leadsBulkDelete)
+  const canImport = canShowImportExcel(viewer)
 
   const [leads, setLeads] = useState([])
   const [total, setTotal] = useState(0)
@@ -331,6 +348,7 @@ export function LeadsPage() {
   const [tagId, setTagId] = useState('')
   const [pageType, setPageType] = useState('')
   const [pageTypes, setPageTypes] = useState([])
+  const [entryMethod, setEntryMethod] = useState('')
   const [datePreset, setDatePreset] = useState(DATE_PRESETS.all)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -351,7 +369,19 @@ export function LeadsPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [editing, setEditing] = useState(null)
+
+  // Topbar "New lead" navigates here with location.state.openCreate.
+  useEffect(() => {
+    if (!location.state?.openCreate) {
+      return
+    }
+    if (canCreate) {
+      setCreateOpen(true)
+    }
+    navigate(location.pathname + location.search, { replace: true, state: {} })
+  }, [location.state, location.pathname, location.search, canCreate, navigate])
   const [feedbackLead, setFeedbackLead] = useState(null)
   const [noteLead, setNoteLead] = useState(null)
   const [historyLead, setHistoryLead] = useState(null)
@@ -394,6 +424,9 @@ export function LeadsPage() {
     }
     if (pageType) {
       params.pageType = pageType
+    }
+    if (entryMethod) {
+      params.entryMethod = entryMethod
     }
     if (dates.startDate) {
       params.startDate = dates.startDate
@@ -673,6 +706,7 @@ export function LeadsPage() {
     setAgentId('')
     setTagId('')
     setPageType('')
+    setEntryMethod('')
     setDatePreset(DATE_PRESETS.all)
     setStartDate('')
     setEndDate('')
@@ -860,6 +894,17 @@ export function LeadsPage() {
                       <div className="lead-sub">{lead.phone}</div>
                       <div className="lead-sub">{lead.email}</div>
                       <div className="lead-sub">{lead.label} · {labelFor(sourceOptions, lead.source)}</div>
+                      <div className="lead-origin-badges">
+                        {leadEntryMethod(lead) === 'excel_import' ? (
+                          <span className="lead-origin-badge is-imported">{messages.importedBadge}</span>
+                        ) : null}
+                        {leadEntryMethod(lead) === 'meta_import' ? (
+                          <span className="lead-origin-badge is-meta">{messages.metaBadge}</span>
+                        ) : null}
+                        {leadEntryMethod(lead) === 'unknown' ? (
+                          <span className="lead-origin-badge is-unknown">{messages.unknownOriginBadge}</span>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="lead-property">
                       <strong>{labelFor(propertyOptions, lead.propertyType)}</strong>
@@ -876,7 +921,7 @@ export function LeadsPage() {
                     <td title={lead.campaignStatus || ''}>
                       {formatCampaignStatus(lead.campaignStatus, {
                         messages,
-                        isMeta: Boolean(lead.metaCreatedAt) || lead.source === 'facebook' || lead.source === 'instagram',
+                        isMeta: isMetaOriginLead(lead),
                       })}
                     </td>
                     <td>{lead.facebookPageName ? lead.facebookPageName : messages.pageNotAvailable}</td>
@@ -988,7 +1033,11 @@ export function LeadsPage() {
       <div className="leads-page-head">
         <h1 className="leads-page-title">{messages.allLeads}</h1>
         <div className="leads-page-actions">
-          <button type="button" className="ghost-btn" disabled>{messages.importCsv}</button>
+          {canImport ? (
+            <button type="button" className="ghost-btn" onClick={() => setImportOpen(true)}>
+              {messages.importExcel}
+            </button>
+          ) : null}
           <button
             type="button"
             className="ghost-btn"
@@ -1022,6 +1071,16 @@ export function LeadsPage() {
               <option key={name} value={name}>
                 {name === 'Unknown_Page_Type' ? messages.pageNotAvailable : name}
               </option>
+            ))}
+          </select>
+          <select
+            value={entryMethod}
+            onChange={(event) => setEntryMethod(event.target.value)}
+            aria-label={messages.addedVia}
+          >
+            <option value="">{messages.addedViaAll}</option>
+            {addedViaOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
           <select
@@ -1220,6 +1279,14 @@ export function LeadsPage() {
       >
         <p>{messages.deleteLeadWarning}</p>
       </HarmoniqModal>
+      <ImportLeadsDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onCompleted={async (summary) => {
+          setNotice(summary?.message || messages.importDone)
+          await loadLeads(pageNumber)
+        }}
+      />
     </div>
   )
 }
@@ -1317,7 +1384,6 @@ function CreateLeadDialog({ open, record, statuses, tags, agents, companyCurrenc
     setPhone('')
     setEmail('')
     setPrimaryAgentId('')
-    setSecondaryAgentId('')
     setTagIds([])
     setLocation('')
     setBudget('')
@@ -1495,6 +1561,38 @@ function CreateLeadDialog({ open, record, statuses, tags, agents, companyCurrenc
             </select>
           </div>
         </div>
+        {record ? (
+          <div className="role-form-row lead-origin-readonly">
+            <div className="manage-field">
+              <label>{messages.addedVia}</label>
+              <input
+                value={formatAddedViaLabel(leadEntryMethod(record), messages)}
+                readOnly
+                disabled
+                aria-readonly="true"
+              />
+              <p className="lead-sub">{messages.originReadOnlyHint}</p>
+            </div>
+            <div className="manage-field">
+              <label>{messages.importedAt}</label>
+              <input
+                value={record.importedAt ? formatStamp(record.importedAt) : '—'}
+                readOnly
+                disabled
+                aria-readonly="true"
+              />
+            </div>
+            <div className="manage-field">
+              <label>{messages.importBatchId}</label>
+              <input
+                value={record.importSessionId || record.importBatchId || '—'}
+                readOnly
+                disabled
+                aria-readonly="true"
+              />
+            </div>
+          </div>
+        ) : null}
         <div className="role-form-row">
           <div className="manage-field">
             <label htmlFor="lead-status">{messages.leadStatus}</label>
